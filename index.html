@@ -335,7 +335,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <div class="pattern-staff-wrap">
         <h3>Pentagramma ritmico</h3>
         <p class="aiuto">Una battuta comune a tutti gli accordi: le note indicano i colpi attivi, le pause quelli disattivati.</p>
-        <div id="pattern-staff"></div>
+        <div id="pattern-staff-status" class="aiuto" role="status" aria-live="polite" hidden></div>
+        <div id="pattern-staff" role="img" aria-label="Pentagramma ritmico"></div>
       </div>
     </div>
   </div>
@@ -1425,6 +1426,8 @@ var Suono = (function () {
 </script>
 
 <!-- ======================= APPLICAZIONE ======================= -->
+<script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.3.1/build/opensheetmusicdisplay.min.js"></script>
+
 <script id="app">
 (function () {
   'use strict';
@@ -1791,6 +1794,95 @@ var Suono = (function () {
     renderRhythmStaff();
   }
   function renderRhythmStaff() {
+    var pattern = rhythm.patterns[rhythm.mode];
+    var levare = rhythm.mode === 'battere-levare';
+    var labels = pattern.map(function (active, i) {
+      var beat = levare ? (i % 2 ? 'e' : (i / 2 + 1)) : (i + 1);
+      return beat + ': ' + (active ? 'colpo' : 'pausa');
+    }).join(', ');
+    var container = $('pattern-staff');
+    container.setAttribute('aria-label', 'Battuta di 4/4: ' + labels);
+    if (!window.opensheetmusicdisplay || !window.opensheetmusicdisplay.OpenSheetMusicDisplay) {
+      rhythmStaffRenderToken++;
+      if (rhythmOSMD) rhythmOSMD.dispose();
+      rhythmOSMD = null;
+      renderRhythmStaffFallback();
+      setRhythmStaffStatus('OpenSheetMusicDisplay non disponibile: è mostrata la notazione di base.');
+      return;
+    }
+    var token = ++rhythmStaffRenderToken;
+    if (rhythmOSMD) rhythmOSMD.dispose();
+    rhythmOSMD = null;
+    container.innerHTML = '';
+    setRhythmStaffStatus('');
+    var osmd;
+    try {
+      osmd = new window.opensheetmusicdisplay.OpenSheetMusicDisplay(container, {
+        autoResize: true,
+        autoBeam: false,
+        backend: 'svg',
+        defaultColorMusic: '#1b1b1b',
+        defaultColorLabel: '#5d6470',
+        drawComposer: false,
+        drawMeasureNumbers: false,
+        drawMetronomeMarks: false,
+        drawPartNames: false,
+        drawTitle: false,
+        drawTimeSignatures: true,
+        drawingParameters: 'compacttight',
+        pageFormat: 'Endless',
+        renderSingleHorizontalStaffline: true
+      });
+    } catch (error) {
+      console.error('OpenSheetMusicDisplay could not be initialized.', error);
+      renderRhythmStaffFallback();
+      setRhythmStaffStatus('OpenSheetMusicDisplay non è riuscito a inizializzarsi: è mostrata la notazione di base.');
+      return;
+    }
+    rhythmOSMD = osmd;
+    osmd.load(rhythmMusicXml()).then(function () {
+      if (token !== rhythmStaffRenderToken) {
+        osmd.dispose();
+        return;
+      }
+      osmd.render();
+    }).catch(function (error) {
+      if (token !== rhythmStaffRenderToken) return;
+      console.error('OpenSheetMusicDisplay could not render the rhythm pattern.', error);
+      osmd.dispose();
+      rhythmOSMD = null;
+      renderRhythmStaffFallback();
+      setRhythmStaffStatus('OpenSheetMusicDisplay non è riuscito a renderizzare la battuta: è mostrata la notazione di base.');
+    });
+  }
+  var rhythmOSMD = null, rhythmStaffRenderToken = 0;
+  function setRhythmStaffStatus(message) {
+    var status = $('pattern-staff-status');
+    status.textContent = message;
+    status.hidden = !message;
+  }
+  function rhythmMusicXml() {
+    var levare = rhythm.mode === 'battere-levare';
+    var pattern = rhythm.patterns[rhythm.mode];
+    var notes = pattern.map(function (active, i) {
+      var beat = levare ? (i % 2 ? 'e' : (i / 2 + 1)) : (i + 1);
+      var type = levare ? 'eighth' : 'quarter';
+      var duration = levare ? 1 : 2;
+      // B4 keeps each attack aligned on the middle line of the treble staff.
+      var pitchOrRest = active ? '<pitch><step>B</step><octave>4</octave></pitch>' : '<rest/>';
+      var beam = '';
+      if (levare && active && i % 2 === 0 && pattern[i + 1]) beam = '<beam number="1">begin</beam>';
+      else if (levare && active && i % 2 === 1 && pattern[i - 1]) beam = '<beam number="1">end</beam>';
+      return '<note>' + pitchOrRest + '<duration>' + duration + '</duration><voice>1</voice><type>' + type + '</type>' +
+        beam + '<lyric number="1"><syllabic>single</syllabic><text>' + beat + '</text></lyric></note>';
+    }).join('');
+    return '<?xml version="1.0" encoding="UTF-8"?>' +
+      '<score-partwise version="3.1"><part-list><score-part id="P1"><part-name>Pattern</part-name></score-part></part-list>' +
+      '<part id="P1"><measure number="1"><attributes><divisions>2</divisions><key><fifths>0</fifths></key>' +
+      '<time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes>' +
+      notes + '</measure></part></score-partwise>';
+  }
+  function renderRhythmStaffFallback() {
     var levare = rhythm.mode === 'battere-levare';
     var pattern = rhythm.patterns[rhythm.mode], count = pattern.length;
     var staffStart = 20, startX = 145, endX = 645, measureW = endX - startX;
