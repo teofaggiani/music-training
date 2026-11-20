@@ -97,9 +97,13 @@ body{font-family:var(--font);background:var(--ui-bg);color:#1b1b1b;font-size:15p
 .app-head p{margin:2px 0 0;font-size:13px;opacity:.9}
 .layout{display:grid;grid-template-columns:350px 1fr;gap:16px;padding:16px;align-items:start}
 .panel{background:var(--ui-panel);border:1px solid var(--ui-border);border-radius:10px;padding:12px 14px}
-.panel section{border-bottom:1px solid var(--ui-border);padding:10px 0}
-.panel section:last-child{border-bottom:0}
-.panel h2{margin:0 0 6px;font-size:15px;color:var(--ui-accent)}
+.panel details{border-bottom:1px solid var(--ui-border)}
+.panel details:last-child{border-bottom:0}
+.panel summary{list-style:none;cursor:pointer;padding:10px 0;font-size:15px;font-weight:700;color:var(--ui-accent)}
+.panel summary::-webkit-details-marker{display:none}
+.panel summary::after{content:"+";float:right}
+.panel details[open] > summary{margin-bottom:6px}
+.panel details[open] > summary::after{content:"-"}
 label{display:block;font-size:13px;font-weight:600;margin:6px 0 2px}
 label.inline{display:flex;gap:8px;align-items:center;font-weight:400;margin:4px 0}
 input[type=text],textarea,select{width:100%;font:inherit;padding:6px 8px;border:1px solid var(--ui-border);border-radius:6px;background:#fff}
@@ -130,6 +134,11 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .card-tools{display:flex;flex-wrap:wrap;gap:4px;align-items:center;justify-content:center;margin-top:4px;font-size:12px}
 .card-tools button,.card-tools select{font-size:12px;padding:3px 7px;width:auto}
 .card-tools .grp{display:inline-flex;gap:3px;align-items:center;border:1px solid var(--ui-border);border-radius:6px;padding:1px 4px}
+.card-tools .drag-handle{cursor:grab;touch-action:none;font-size:16px;padding:2px 6px}
+.card-tools .drag-handle:active{cursor:grabbing}
+.card.dragging{opacity:.35}
+.card.drop-before{box-shadow:inset 4px 0 0 var(--ui-accent)}
+.card.drop-after{box-shadow:inset -4px 0 0 var(--ui-accent)}
 .vuoto{padding:30px;text-align:center;color:var(--muted)}
 .legenda svg{max-width:100%;height:auto;display:block;margin:10px auto 0}
 .ed-wrap{background:var(--ui-panel);border:1px solid var(--ui-border);border-radius:10px;padding:14px;margin-bottom:14px}
@@ -141,17 +150,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .risultato{font-size:16px;margin:8px 0}
 .risultato strong{font-size:22px}
 .costruisci{background:#f6f8fc;border:1px solid var(--ui-border);border-radius:8px;padding:6px 10px;margin-bottom:8px}
-.armonia h3{margin:8px 0 2px;font-size:13px;color:var(--ui-accent)}
-.armonia .aiuto{margin:2px 0 6px}
-.sug-lista{display:flex;flex-wrap:wrap;gap:6px}
-.sug{display:inline-flex;align-items:stretch;border:1px solid var(--ui-border);border-radius:999px;overflow:hidden;background:#fff}
-.sug button{border:0;border-radius:0;background:transparent;padding:4px 9px;line-height:1.15}
-.sug button:hover{background:#eaf0ff}
-.sug .sug-add{font-weight:600}
-.sug .sug-add small{display:block;font-size:10px;font-weight:400;color:var(--muted)}
-.sug .sug-play{border-left:1px solid var(--ui-border);font-size:11px;padding:4px 8px}
-.sug.top{border:2px solid var(--ui-accent);background:#eaf0ff}
-.sug.relativa{border:2px dashed var(--ui-accent)}
 .salvataggio{font-size:12px;color:var(--muted);margin:4px 0}
 .seq-picker{display:grid;gap:4px;padding:8px 8px 0}
 .seq-picker label{margin:0;font-size:11px}
@@ -173,7 +171,11 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .sheet.tavola .card{background:transparent}
 [hidden]{display:none !important}
 @media (max-width: 980px){ .layout{grid-template-columns:1fr} .ed-grid{grid-template-columns:1fr} }
-@media (max-width: 700px){ #griglia{grid-template-columns:1fr !important} }
+@media (max-width: 700px){
+  #griglia{grid-template-columns:1fr !important}
+  .card.drop-before{box-shadow:inset 0 4px 0 var(--ui-accent)}
+  .card.drop-after{box-shadow:inset 0 -4px 0 var(--ui-accent)}
+}
 
 /* ===== Stampa: solo il foglio, su A4 ===== */
 @page{ size: A4; margin: 12mm }
@@ -196,36 +198,21 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
 <main class="layout">
 <aside class="panel" aria-label="Impostazioni">
-  <section class="aspetto">
-    <h2>Foglio normale o tavola colorata</h2>
-    <label for="aspetto">Aspetto del foglio</label>
-    <select id="aspetto"><option value="normale" selected>Normale</option><option value="tavola">Tavola colorata per la classe</option></select>
-    <div id="tav-opz" hidden>
-      <label for="tav-titolo">Titolo della tavola</label>
-      <input type="text" id="tav-titolo" value="Tavola riassuntiva degli accordi studiati">
-      <p class="aiuto">La tavola viene ricordata automaticamente in questo browser.</p>
-    </div>
-  </section>
-
-  <section>
-    <h2>1. Crea una sequenza</h2>
-    <label for="seq-count">Numero di accordi</label>
-    <input type="number" id="seq-count" min="1" step="1" value="4">
-    <p class="aiuto">Sopra ogni accordo scegli la nota e il modo maggiore o minore. Le selezioni si applicano alla sequenza riprodotta.</p>
-    <p id="salvataggio" class="salvataggio" role="status" aria-live="polite"></p>
-  </section>
-
-  <section>
-    <h2>2. Aggiungi o scrivi accordi</h2>
+  <details open>
+    <summary>1. Aggiungi o scrivi accordi</summary>
     <div class="costruisci">
       <div class="row due">
         <div><label for="add-nota">Nota</label><select id="add-nota"></select></div>
         <div><label for="add-tipo">Tipo</label><select id="add-tipo"></select></div>
       </div>
       <div class="row"><button id="anteprima" type="button">&#9654; Ascolta</button><button id="aggiungi" type="button" class="primario">Aggiungi al foglio</button></div>
-      <div id="armonia" class="armonia" aria-live="polite"></div>
+      <p id="salvataggio" class="salvataggio" role="status" aria-live="polite"></p>
     </div>
-    <label for="prog">Oppure scrivi la progressione</label>
+  </details>
+
+  <details>
+    <summary>2. Scrivi la progressione</summary>
+    <label for="prog">Progressione</label>
     <textarea id="prog" rows="2" spellcheck="false">Do Sol Lam Fa</textarea>
     <div class="row"><button id="applica" class="primario" type="button">Crea il foglio</button></div>
     <div class="row">
@@ -236,10 +223,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     </div>
     <p class="aiuto">Vanno bene sia C G Am F sia Do Sol Lam Fa. Separa con spazi o virgole. Altri esempi: Bb, F#m7b5, Ebmaj7, Bdim7, Do/Mi.</p>
     <div id="errori" class="errore" role="alert"></div>
-  </section>
+  </details>
 
-  <section>
-    <h2>3. Come si leggono</h2>
+  <details>
+    <summary>3. Come si leggono</summary>
     <label>Nomi degli accordi</label>
     <label class="inline"><input type="radio" name="notazione" value="int"> Internazionale (C, Am)</label>
     <label class="inline"><input type="radio" name="notazione" value="it" checked> Italiana (Do, Lam)</label>
@@ -254,10 +241,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <div id="opz-nomi"><label for="nomi">Nomi delle note</label>
       <select id="nomi"><option value="nessuno">Nessuno</option><option value="accordo" selected>Solo dell'accordo</option><option value="tutti">Tutti i tasti</option></select></div>
     </div>
-  </section>
+  </details>
 
-  <section id="opz-strumenti">
-    <h2>4. Chitarra e pianoforte</h2>
+  <details id="opz-strumenti">
+    <summary>4. Chitarra e pianoforte</summary>
     <div id="opz-g">
       <label class="inline"><input type="checkbox" id="mancina"> Chitarra per mancini</label>
       <label class="inline"><input type="checkbox" id="numeri" checked> Numeri delle dita</label>
@@ -268,23 +255,27 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <label for="ottave">Ottave del pianoforte</label>
       <select id="ottave"><option value="auto" selected>Automatico (2, 3 se serve)</option><option value="2">2 ottave</option><option value="3">3 ottave</option></select>
     </div>
-  </section>
+  </details>
 
-  <section>
-    <h2>5. Ascolto</h2>
-    <label for="volume">Volume</label>
-    <input type="range" id="volume" min="0" max="1" step="0.05" value="0.7">
-    <p class="aiuto">Ogni scheda ha il pulsante "Ascolta". Chitarra: le corde suonano una dopo l'altra, dalla più grave alla più acuta; con Maiusc premuto, o con il pulsante "Arpeggio", le note si sentono più distanziate. Pianoforte: tutte le note insieme.</p>
-  </section>
+  <details class="aspetto">
+    <summary>5. Foglio normale o tavola colorata</summary>
+    <label for="aspetto">Aspetto del foglio</label>
+    <select id="aspetto"><option value="normale" selected>Normale</option><option value="tavola">Tavola colorata per la classe</option></select>
+    <div id="tav-opz" hidden>
+      <label for="tav-titolo">Titolo della tavola</label>
+      <input type="text" id="tav-titolo" value="Tavola riassuntiva degli accordi studiati">
+      <p class="aiuto">La tavola viene ricordata automaticamente in questo browser.</p>
+    </div>
+  </details>
 
-  <section>
-    <h2>6. Accessibilità</h2>
+  <details>
+    <summary>6. Accessibilità</summary>
     <label class="inline"><input type="checkbox" id="grande"> Modalità grande (linee e scritte più grandi)</label>
     <label class="inline"><input type="checkbox" id="contrasto"> Alto contrasto</label>
-  </section>
+  </details>
 
-  <section>
-    <h2>7. Esporta e stampa</h2>
+  <details>
+    <summary>7. Esporta e stampa</summary>
     <label for="sfondo">Sfondo di SVG e PNG</label>
     <select id="sfondo"><option value="bianco" selected>Bianco</option><option value="trasparente">Trasparente</option></select>
     <div class="row">
@@ -292,9 +283,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       <button id="esp-png" type="button">Foglio PNG</button>
       <button id="stampa" type="button" class="primario">Stampa (A4)</button>
     </div>
-    <p class="aiuto">Ogni scheda ha anche i suoi pulsanti SVG e PNG. In stampa scompaiono tutti i comandi.</p>
+    <p class="aiuto">In stampa scompaiono tutti i comandi.</p>
     <div id="stato" class="stato" role="status" aria-live="polite"></div>
-  </section>
+  </details>
 </aside>
 
 <section id="area">
@@ -316,8 +307,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
           <input type="range" id="seq-bpm" min="40" max="160" step="1" value="80"></div>
         <div><label for="seq-strum">Strumento</label>
           <select id="seq-strum"><option value="chitarra">Chitarra</option><option value="piano">Pianoforte</option><option value="entrambi" selected>Chitarra e pianoforte</option></select></div>
-        <div><label for="seq-metronome-volume">Volume metronomo: <output id="seq-metronome-volume-val">80%</output></label>
-          <input type="range" id="seq-metronome-volume" min="0" max="1" step="0.05" value="0.8"></div>
+        <div><label for="seq-metronome-volume">Volume metronomo: <output id="seq-metronome-volume-val">100%</output></label>
+          <input type="range" id="seq-metronome-volume" min="0" max="1" step="0.05" value="1"></div>
       </div>
       <div id="seq-stato" class="aiuto" role="status" aria-live="polite">La sequenza inizia con un conteggio di 4 battiti. Ogni accordo dura una battuta in 4/4.</div>
     </div>
@@ -1325,11 +1316,6 @@ var Suono = (function () {
     if (ctx.state === 'suspended') ctx.resume();
     return true;
   }
-  function setVolume(v) {
-    volume = v;
-    if (master) master.gain.setTargetAtTime(v, ctx.currentTime, 0.02);
-  }
-
   // Corda pizzicata (Karplus-Strong): una linea di ritardo di rumore, filtrata a ogni giro.
   function pluckBuffer(midi) {
     if (bufferCache[midi]) return bufferCache[midi];
@@ -1426,7 +1412,7 @@ var Suono = (function () {
       }
     };
   }
-  return { chitarra: chitarra, piano: piano, sequenza: sequenza, setVolume: setVolume };
+  return { chitarra: chitarra, piano: piano, sequenza: sequenza };
 })();
 </script>
 
@@ -1439,8 +1425,7 @@ var Suono = (function () {
 
   var state = {
     notation: 'it', show: { chitarra: true, piano: true, pentagramma: false }, cols: 4, names: 'accordo', left: false, fingerNums: true, fingerCols: false,
-    octaves: 'auto', roles: false, bg: 'bianco', cards: [], look: 'normale',
-    ref: null                  // accordo di riferimento per i suggerimenti in armonia
+    octaves: 'auto', roles: false, bg: 'bianco', cards: [], look: 'normale'
   };
   var SEQUENCE_ROOTS = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
   var sequenceSelections = [
@@ -1455,7 +1440,7 @@ var Suono = (function () {
     }
   };
   var metronomeEnabled = false;
-  var metronomeVolume = 0.8;
+  var metronomeVolume = 1;
   var nextId = 1;
   var voicingCache = {};
   var man = { frets: [-1, -1, -1, -1, -1, -1], base: 1, keys: [] };
@@ -1576,7 +1561,7 @@ var Suono = (function () {
   function saveState() {
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify({
-        v: 5, sequence: sequenceSelections, rhythm: rhythm, metronome: metronomeEnabled, metronomeVolume: metronomeVolume, look: state.look, show: state.show, tavTitolo: $('tav-titolo').value, prog: $('prog').value,
+        v: 7, sequence: sequenceSelections, rhythm: rhythm, metronome: metronomeEnabled, metronomeVolume: metronomeVolume, look: state.look, show: state.show, tavTitolo: $('tav-titolo').value, prog: $('prog').value,
         cards: state.cards.map(function (c) { return { chord: c.chord, gIdx: c.gIdx, gManual: c.gManual, pInv: c.pInv, pManual: c.pManual }; })
       }));
       $('salvataggio').textContent = 'Sequenza salvata automaticamente su questo dispositivo.';
@@ -1587,7 +1572,7 @@ var Suono = (function () {
   function restoreState() {
     try {
       var s = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
-      if (!s || (s.v !== 1 && s.v !== 2 && s.v !== 3 && s.v !== 4 && s.v !== 5) || !s.cards || !s.cards.length) return false;
+      if (!s || (s.v !== 1 && s.v !== 2 && s.v !== 3 && s.v !== 4 && s.v !== 5 && s.v !== 6 && s.v !== 7) || !s.cards || !s.cards.length) return false;
       var restoredSequence = sequenceSelections;
       if (s.v >= 2) {
         if (!Array.isArray(s.sequence) || !s.sequence.length) throw new Error('Sequenza salvata non valida.');
@@ -1618,7 +1603,7 @@ var Suono = (function () {
         };
       }
       if (s.v >= 4 && typeof s.metronome !== 'boolean') throw new Error('Impostazione del metronomo salvata non valida.');
-      if (s.v === 5 && (typeof s.metronomeVolume !== 'number' || !isFinite(s.metronomeVolume) || s.metronomeVolume < 0 || s.metronomeVolume > 1)) {
+      if (s.v >= 5 && (typeof s.metronomeVolume !== 'number' || !isFinite(s.metronomeVolume) || s.metronomeVolume < 0 || s.metronomeVolume > 1)) {
         throw new Error('Volume del metronomo salvato non valido.');
       }
       var cards = s.cards.map(function (c) {
@@ -1630,7 +1615,7 @@ var Suono = (function () {
       sequenceSelections = restoredSequence;
       rhythm = restoredRhythm;
       metronomeEnabled = s.v >= 4 && s.metronome === true;
-      metronomeVolume = s.v === 5 ? s.metronomeVolume : 0.8;
+      metronomeVolume = s.v >= 5 ? (s.v < 7 && s.metronomeVolume === 0.8 ? 1 : s.metronomeVolume) : 1;
       state.cards = cards;
       // cosa disegnare: oggetto di tre interruttori, oppure il vecchio valore unico ('entrambi' | 'chitarra' | 'piano')
       var old = s.mostra || (typeof s.show === 'string' ? s.show : null);
@@ -1648,7 +1633,6 @@ var Suono = (function () {
       renderPattern();
       syncMetronome();
       syncMetronomeVolume();
-      state.ref = cards[0].chord; renderArmonia();
       renderSheet();
       $('salvataggio').textContent = 'Sequenza ripresa dal salvataggio su questo dispositivo.';
       setStatus('Ho ripreso il foglio salvato (' + cards.length + (cards.length === 1 ? ' accordo).' : ' accordi).'));
@@ -1709,8 +1693,7 @@ var Suono = (function () {
       var svg = cardSvgString(view, S, false, i, minH);
       var g = state.show.chitarra, p = state.show.piano;
       var t = '<div class="card-tools nostampa">' +
-        '<button type="button" data-act="left" title="Sposta prima" aria-label="Sposta prima"' + (i === 0 ? ' disabled' : '') + '>&#9664;</button>' +
-        '<button type="button" data-act="right" title="Sposta dopo" aria-label="Sposta dopo"' + (i === state.cards.length - 1 ? ' disabled' : '') + '>&#9654;</button>';
+        '<button type="button" class="drag-handle" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown" aria-label="Trascina per riordinare ' + D.esc(view.title) + '; Alt+frecce per spostare" title="Trascina per riordinare; Alt+frecce per spostare">&#8942;&#8942;</button>';
       if (g) t += '<span class="grp">Chitarra <button type="button" data-act="gprev" title="Voicing precedente" aria-label="Voicing precedente"' + (card.gManual || view.guitarCount <= 1 ? ' disabled' : '') + '>&#8249;</button>' +
         '<button type="button" data-act="gnext" title="Voicing successivo" aria-label="Voicing successivo"' + (card.gManual || view.guitarCount <= 1 ? ' disabled' : '') + '>&#8250;</button>' +
         '<button type="button" data-act="gplay" title="Ascolta la chitarra (con Maiusc: arpeggio)">&#9654; Ascolta</button>' +
@@ -1721,9 +1704,7 @@ var Suono = (function () {
         if (card.pManual) t += '<option value="m" selected>inserito a mano</option>';
         t += '</select><button type="button" data-act="pplay" title="Ascolta il pianoforte">&#9654; Ascolta</button></span>';
       }
-      t += '<button type="button" data-act="svg" title="Scarica questa scheda in SVG">SVG</button>' +
-        '<button type="button" data-act="png" title="Scarica questa scheda in PNG">PNG</button>' +
-        '<button type="button" data-act="del" title="Togli questa scheda" aria-label="Togli questa scheda">&#10005;</button></div>';
+      t += '<button type="button" data-act="del" title="Togli questa scheda" aria-label="Togli questa scheda">&#10005;</button></div>';
       return '<div class="card" data-id="' + card.id + '">' + (showPickers ? sequencePickerHtml(i) : '') +
         '<div class="card-svg">' + svg + '</div>' + t + '</div>';
     }).join('');
@@ -1757,9 +1738,6 @@ var Suono = (function () {
         '<span class="step-count">' + beat + '</span><span class="step-arrow" aria-hidden="true">' + (upstroke ? '&#8593;' : '&#8595;') + '</span></button>';
     }).join('');
   }
-  function renderSequenceEditor() {
-    $('seq-count').value = sequenceSelections.length;
-  }
   function sequenceChord(selection) {
     return T.parseChord(selection.root + (selection.mode === 'm' ? 'm' : ''));
   }
@@ -1785,7 +1763,6 @@ var Suono = (function () {
     var selections = state.cards.map(function (card) { return selectionForChord(card.chord); });
     if (selections.some(function (selection) { return !selection; })) return false;
     sequenceSelections = selections;
-    renderSequenceEditor();
     return true;
   }
   function sequencePickerHtml(index) {
@@ -1820,22 +1797,8 @@ var Suono = (function () {
     });
     $('prog').value = chords.map(function (ch) { return T.chordName(ch, state.notation); }).join(' ');
     $('errori').textContent = '';
-    if (chords.length) { state.ref = chords[0]; renderArmonia(); }
     renderSheet();
     setStatus('Sequenza con ' + chords.length + (chords.length === 1 ? ' accordo.' : ' accordi.'));
-  }
-  function resizeSequence() {
-    var count = Number($('seq-count').value);
-    if (!isFinite(count) || count < 1 || Math.floor(count) !== count) {
-      $('errori').textContent = 'Indica un numero intero di accordi maggiore di zero.';
-      $('seq-count').value = sequenceSelections.length;
-      return;
-    }
-    while (sequenceSelections.length < count) sequenceSelections.push({ root: 'C', mode: 'maj' });
-    sequenceSelections.length = count;
-    $('errori').textContent = '';
-    renderSequenceEditor();
-    applySequence();
   }
 
   // ---- progressione ----
@@ -1849,7 +1812,6 @@ var Suono = (function () {
     });
     if (!res.errors.length) syncSequenceFromCards();
     $('errori').textContent = res.errors.length ? 'Non riconosciuto: ' + res.errors.join(', ') + '. Controlla come è scritto.' : '';
-    if (state.cards.length) { state.ref = state.cards[0].chord; renderArmonia(); }
     renderSheet();
     setStatus(state.cards.length ? 'Foglio con ' + state.cards.length + (state.cards.length === 1 ? ' accordo.' : ' accordi.') : '');
   }
@@ -1888,15 +1850,6 @@ var Suono = (function () {
     img.onerror = function () { setStatus('Non sono riuscito a creare il PNG.'); };
     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   }
-  function safeName(s) { return s.replace(/[\\\/:*?"<>|]/g, '_').replace(/\s+/g, '_'); }
-  function exportCard(card, kind) {
-    var S = getStyle(), view = viewOf(card);
-    var wantBg = state.bg === 'bianco';
-    var svg = cardSvgString(view, S, wantBg, state.cards.indexOf(card), isTavola() ? posterMinH(S, state.cards.map(viewOf)) : 0);
-    var base = (isTavola() ? 'tavola-' : 'accordo-') + safeName(view.title);
-    if (kind === 'svg') { download(base + '.svg', svgBlob(svg)); setStatus('Scaricato ' + base + '.svg'); }
-    else svgToPng(svg, !wantBg, base + '.png');
-  }
   function sheetSvgString(S, bg) {
     var views = state.cards.map(viewOf);
     if (isTavola()) return D.posterSvg(views, { title: $('tav-titolo').value.trim() }, drawCtx(posterStyle(S), { cols: state.cols, bg: bg }));
@@ -1923,7 +1876,7 @@ var Suono = (function () {
     if (!Suono.piano(midis)) setStatus("Questo browser non riproduce l'audio.");
   }
 
-  // ---- costruzione da nota e tipo, anteprima, accordi in armonia ----
+  // ---- costruzione da nota e tipo, anteprima ----
   var TYPE_ORDER = ['maj', 'm', '7', 'maj7', 'm7', 'dim', 'aug', 'sus2', 'sus4', 'dim7', 'm7b5', 'add9', '6', 'm6', '9'];
   function pickedChord() {
     var type = T.TYPES.filter(function (t) { return t.id === $('add-tipo').value; })[0];
@@ -1949,25 +1902,6 @@ var Suono = (function () {
     if (what !== 'piano' && view.guitar) playGuitar(view.guitar, false);
     if (what !== 'chitarra') playPiano(view.piano.notes.map(function (n) { return n.midi; }));
   }
-  var sugList = [];
-  function renderArmonia() {
-    var box = $('armonia'), ref = state.ref, n = state.notation;
-    if (!ref) { box.innerHTML = ''; return; }
-    var mode = T.chordMode(ref), list = T.keyChords(ref.root, mode);
-    var key = T.noteName(ref.root, n, false) + ' ' + mode;
-    var h = '<h3>Accordi in armonia con ' + D.esc(T.chordName(ref, n)) + '</h3>' +
-      '<p class="aiuto">Sono gli accordi della tonalità di ' + D.esc(key) + ': un punto di partenza, non una regola. ' +
-      'Con il bordo pieno i più usati, con il bordo tratteggiato la relativa.</p><div class="sug-lista">';
-    list.forEach(function (it, i) {
-      var name = T.chordName(it.chord, n);
-      h += '<span class="sug' + (it.tag ? ' ' + it.tag : '') + '">' +
-        '<button type="button" class="sug-add" data-i="' + i + '" title="Aggiungi ' + D.esc(name) + ' al foglio">' + D.esc(name) + '<small>' + D.esc(it.roman) + '</small></button>' +
-        '<button type="button" class="sug-play" data-i="' + i + '" title="Ascolta ' + D.esc(name) + '" aria-label="Ascolta ' + D.esc(name) + '">&#9654;</button></span>';
-    });
-    box.innerHTML = h + '</div>';
-    sugList = list;
-  }
-
   // ---- riproduzione in sequenza ----
   var seq = { on: false, timer: null, ctl: null, idx: 0, next: 0, events: [], hi: null, done: false, endAt: 0, countInStart: 0, countInEnd: 0, beatDuration: 0 };
   function markPlaying() {
@@ -2125,7 +2059,6 @@ var Suono = (function () {
       renderPattern();
       saveState();
     });
-    $('seq-count').addEventListener('change', resizeSequence);
     $('applica').addEventListener('click', applyProgression);
     $('prog').addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); applyProgression(); } });
     document.querySelectorAll('[data-prog]').forEach(function (b) {
@@ -2134,20 +2067,8 @@ var Suono = (function () {
     $('aggiungi').addEventListener('click', function () {
       var ch = pickedChord();
       addChord(ch);
-      state.ref = ch; renderArmonia();
     });
     $('anteprima').addEventListener('click', function () { previewChord(pickedChord()); });
-    ['add-nota', 'add-tipo'].forEach(function (id) {
-      $(id).addEventListener('change', function () { state.ref = pickedChord(); renderArmonia(); });
-    });
-    // Un suggerimento: il pulsante col nome lo aggiunge (la tonalità resta quella), la freccia lo fa solo ascoltare.
-    $('armonia').addEventListener('click', function (e) {
-      var b = e.target.closest('button[data-i]');
-      if (!b) return;
-      var it = sugList[parseInt(b.getAttribute('data-i'), 10)];
-      if (!it) return;
-      if (b.classList.contains('sug-play')) previewChord(it.chord); else addChord(it.chord);
-    });
     $('seq-play').addEventListener('click', startSeq);
     $('seq-stop').addEventListener('click', function () { stopSeq('Fermato.'); });
     $('seq-metronomo').addEventListener('click', function () {
@@ -2162,7 +2083,7 @@ var Suono = (function () {
     $('seq-metronome-volume').addEventListener('change', saveState);
     $('seq-bpm').addEventListener('input', function () { $('seq-bpm-val').textContent = $('seq-bpm').value; });
     document.querySelectorAll('input[name=notazione]').forEach(function (r) {
-      r.addEventListener('change', function () { state.notation = r.value; fillNotes(); renderArmonia(); renderSequenceEditor(); refresh(); });
+      r.addEventListener('change', function () { state.notation = r.value; fillNotes(); refresh(); });
     });
     // Chitarra, Tastiera, Pentagramma: tre interruttori indipendenti, ne resta sempre acceso almeno uno
     [['mostra-g', 'chitarra'], ['mostra-p', 'piano'], ['mostra-s', 'pentagramma']].forEach(function (pair) {
@@ -2187,22 +2108,101 @@ var Suono = (function () {
     $('esp-png').addEventListener('click', function () { exportSheet('png'); });
     $('stampa').addEventListener('click', function () { window.print(); });
 
-    $('griglia').addEventListener('click', function (e) {
+    var grid = $('griglia'), drag = null;
+    function clearDropTargets() {
+      grid.querySelectorAll('.drop-before,.drop-after').forEach(function (el) {
+        el.classList.remove('drop-before', 'drop-after');
+      });
+    }
+    function moveCard(sourceId, targetId, before) {
+      if (sourceId === targetId) return;
+      var sourceIndex = state.cards.findIndex(function (card) { return card.id === sourceId; });
+      if (sourceIndex < 0) return;
+      var moved = state.cards.splice(sourceIndex, 1)[0];
+      var targetIndex = state.cards.findIndex(function (card) { return card.id === targetId; });
+      if (targetIndex < 0) {
+        state.cards.splice(sourceIndex, 0, moved);
+        return;
+      }
+      state.cards.splice(targetIndex + (before ? 0 : 1), 0, moved);
+      syncSequenceFromCards();
+      renderSheet();
+    }
+    function endDrag(e, commit) {
+      if (!drag || drag.pointerId !== e.pointerId) return;
+      var completed = drag;
+      drag = null;
+      clearDropTargets();
+      grid.querySelectorAll('.card.dragging').forEach(function (el) { el.classList.remove('dragging'); });
+      if (commit && completed.started && completed.targetId !== null) {
+        moveCard(completed.sourceId, completed.targetId, completed.before);
+      }
+    }
+    grid.addEventListener('pointerdown', function (e) {
+      var handle = e.target.closest('.drag-handle');
+      if (!handle || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      var card = handle.closest('.card');
+      drag = {
+        sourceId: parseInt(card.getAttribute('data-id'), 10),
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        started: false,
+        targetId: null,
+        before: false
+      };
+      if (handle.setPointerCapture) handle.setPointerCapture(e.pointerId);
+    });
+    grid.addEventListener('pointermove', function (e) {
+      if (!drag || drag.pointerId !== e.pointerId) return;
+      if (!drag.started && Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) < 6) return;
+      drag.started = true;
+      e.preventDefault();
+      var source = grid.querySelector('.card[data-id="' + drag.sourceId + '"]');
+      if (source) source.classList.add('dragging');
+      clearDropTargets();
+      var hit = document.elementFromPoint(e.clientX, e.clientY);
+      var target = hit && hit.closest('.card');
+      if (!target || target.parentNode !== grid || parseInt(target.getAttribute('data-id'), 10) === drag.sourceId) {
+        drag.targetId = null;
+        return;
+      }
+      var rect = target.getBoundingClientRect();
+      var columns = getComputedStyle(grid).gridTemplateColumns.split(' ').length;
+      drag.before = columns > 1 ? e.clientX < rect.left + rect.width / 2 : e.clientY < rect.top + rect.height / 2;
+      drag.targetId = parseInt(target.getAttribute('data-id'), 10);
+      target.classList.add(drag.before ? 'drop-before' : 'drop-after');
+    });
+    grid.addEventListener('pointerup', function (e) { endDrag(e, true); });
+    grid.addEventListener('pointercancel', function (e) { endDrag(e, false); });
+    grid.addEventListener('keydown', function (e) {
+      var handle = e.target.closest('.drag-handle');
+      if (!handle || !e.altKey || ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].indexOf(e.key) < 0) return;
+      e.preventDefault();
+      var card = handle.closest('.card'), id = parseInt(card.getAttribute('data-id'), 10);
+      var index = state.cards.findIndex(function (item) { return item.id === id; });
+      var offset = e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 1;
+      if (index + offset < 0 || index + offset >= state.cards.length) return;
+      state.cards.splice(index + offset, 0, state.cards.splice(index, 1)[0]);
+      syncSequenceFromCards();
+      renderSheet();
+      var movedHandle = grid.querySelector('.card[data-id="' + id + '"] .drag-handle');
+      if (movedHandle) movedHandle.focus();
+    });
+
+    grid.addEventListener('click', function (e) {
       var btn = e.target.closest('button[data-act]');
       if (!btn) return;
       var cardEl = btn.closest('.card'), id = parseInt(cardEl.getAttribute('data-id'), 10);
       var i = state.cards.findIndex(function (c) { return c.id === id; });
       if (i < 0) return;
       var card = state.cards[i], act = btn.getAttribute('data-act');
-      if (act === 'left' && i > 0) { state.cards.splice(i - 1, 0, state.cards.splice(i, 1)[0]); }
-      else if (act === 'right' && i < state.cards.length - 1) { state.cards.splice(i + 1, 0, state.cards.splice(i, 1)[0]); }
-      else if (act === 'del') { state.cards.splice(i, 1); }
+      if (act === 'del') { state.cards.splice(i, 1); }
       else if (act === 'gnext' || act === 'gprev') {
         var n = voicingsOf(card.chord).length || 1;
         card.gManual = null;
         card.gIdx = (card.gIdx + (act === 'gnext' ? 1 : n - 1)) % n;
       }
-      else if (act === 'svg' || act === 'png') { exportCard(card, act); return; }
       else if (act === 'gplay' || act === 'garp') { playGuitar(viewOf(card).guitar, act === 'garp' || e.shiftKey); return; }
       else if (act === 'pplay') { playPiano(viewOf(card).piano.notes.map(function (n) { return n.midi; })); return; }
       syncSequenceFromCards();
@@ -2252,7 +2252,6 @@ var Suono = (function () {
     });
     $('man-g-play').addEventListener('click', function (e) { playGuitar({ frets: man.frets }, e.shiftKey); });
     $('man-p-play').addEventListener('click', function () { playPiano(man.keys.slice().sort(function (a, b) { return a - b; })); });
-    $('volume').addEventListener('input', function () { Suono.setVolume(parseFloat($('volume').value)); });
     $('man-g-reset').addEventListener('click', function () { man.frets = [-1, -1, -1, -1, -1, -1]; renderManual(); });
     $('man-p-reset').addEventListener('click', function () { man.keys = []; renderManual(); });
     $('man-g-add').addEventListener('click', function () {
@@ -2272,8 +2271,6 @@ var Suono = (function () {
 
   fillSelects();
   bind();
-  state.ref = pickedChord();
-  renderSequenceEditor();
   renderPattern();
   syncMetronome();
   syncMetronomeVolume();
