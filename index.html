@@ -167,7 +167,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .pattern-step .step-arrow{font-size:22px;line-height:1}
 .pattern-staff-wrap{margin-top:12px;padding:8px 10px;background:#fff;border:1px solid var(--ui-border);border-radius:8px;overflow-x:auto}
 .pattern-staff-wrap h3{margin:0 0 4px;font-size:14px;color:var(--ui-accent)}
-.pattern-staff-wrap svg{display:block;width:100%;height:auto}
+.pattern-staff-wrap svg{display:block;width:100%;height:90px;object-fit:contain}
 .card.suona{outline:5px solid var(--play-color);outline-offset:4px;border-radius:10px}
 .sheet.tavola{background:#fff8e7}
 .tav-testa svg{width:100%;height:auto;display:block}
@@ -214,17 +214,17 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   </details>
 
   <details>
-    <summary>2. Scrivi la progressione</summary>
-    <label for="prog">Progressione</label>
+    <summary>2. Scrivi la sequenza di accordi</summary>
+    <label for="prog">Sequenza di accordi</label>
     <textarea id="prog" rows="2" spellcheck="false">Do Sol Lam Fa</textarea>
     <div class="row"><button id="applica" class="primario" type="button">Crea il foglio</button></div>
     <div class="row">
-      <button class="chip" type="button" data-prog="C G Am F">C G Am F</button>
       <button class="chip" type="button" data-prog="Do Sol Lam Fa">Do Sol Lam Fa</button>
-      <button class="chip" type="button" data-prog="Am Dm E7 Am">Am Dm E7 Am</button>
-      <button class="chip" type="button" data-prog="D G A7 D">D G A7 D</button>
+      <button class="chip" type="button" data-prog="Lam Rem Mi7 Lam">Lam Rem Mi7 Lam</button>
+      <button class="chip" type="button" data-prog="Re Sol La7 Re">Re Sol La7 Re</button>
+      <button class="chip" type="button" data-prog="Fa Do Rem Sib">Fa Do Rem Sib</button>
     </div>
-    <p class="aiuto">Vanno bene sia C G Am F sia Do Sol Lam Fa. Separa con spazi o virgole. Altri esempi: Bb, F#m7b5, Ebmaj7, Bdim7, Do/Mi.</p>
+    <p class="aiuto">Indica gli accordi con la nota fondamentale e la lettera m se vuoi il minore. Es.: Do= Do maggiore, Dom= Do minore</p>
     <div id="errori" class="errore" role="alert"></div>
   </details>
 
@@ -751,7 +751,7 @@ var Teoria = (function () {
     var lo = Math.min.apply(null, notes.map(function (n) { return n.midi; }));
     var hi = Math.max.apply(null, notes.map(function (n) { return n.midi; }));
     var startC = Math.floor(lo / 12) * 12;
-    var octaves = Math.max(pref === '3' ? 3 : 2, Math.ceil((hi - startC + 1) / 12));
+    var octaves = Math.max(pref === '3' ? 3 : 2, Math.ceil((hi - startC) / 12));
     return { startC: startC, octaves: octaves };
   }
 
@@ -1380,7 +1380,7 @@ var Suono = (function () {
   function clickAt(t, accented, dest, volume) {
     if (volume === 0) return;
     var osc = ctx.createOscillator(), gain = ctx.createGain(), lp = ctx.createBiquadFilter();
-    var peak = (accented ? 0.24 : 0.18) * volume;
+    var peak = (accented ? 0.48 : 0.36) * volume;
     osc.type = 'sine'; osc.frequency.value = accented ? 660 : 520;
     lp.type = 'lowpass'; lp.frequency.value = 1100;
     gain.gain.setValueAtTime(0.0001, t);
@@ -1535,6 +1535,36 @@ var Suono = (function () {
   }
   var INV_LABEL = ['fondamentale', '1° rivolto', '2° rivolto', '3° rivolto'];
 
+  function positionPianoNotes(notes, startC, octaves) {
+    var endC = startC + octaves * 12;
+    if (!notes.length) return [];
+    var center = notes.filter(function (n) { return n.degree === 3; })[0] || notes[Math.floor(notes.length / 2)];
+    var bestShift = 0, bestDistance = Infinity, bestOverflow = Infinity, bestShiftSize = Infinity;
+    for (var shift = -3; shift <= 3; shift++) {
+      var centerMidi = center.midi + shift * 12;
+      var distance = Math.abs(centerMidi - 60), overflow = 0;
+      notes.forEach(function (n) {
+        var midi = n.midi + shift * 12;
+        if (midi < startC) overflow += startC - midi;
+        else if (midi > endC) overflow += midi - endC;
+      });
+      var shiftSize = Math.abs(shift);
+      if (distance < bestDistance || (distance === bestDistance && overflow < bestOverflow) ||
+        (distance === bestDistance && overflow === bestOverflow && shiftSize < bestShiftSize)) {
+        bestShift = shift;
+        bestDistance = distance;
+        bestOverflow = overflow;
+        bestShiftSize = shiftSize;
+      }
+    }
+    return notes.map(function (n) {
+      var midi = n.midi + bestShift * 12;
+      while (midi < startC) midi += 12;
+      while (midi > endC) midi -= 12;
+      return { midi: midi, pc: n.pc, role: n.role, note: n.note, degree: n.degree };
+    });
+  }
+
   function viewOf(card) {
     var chord = card.chord, notation = state.notation, fns = nameFns(chord);
     var tones = T.chordTones(chord);
@@ -1554,10 +1584,24 @@ var Suono = (function () {
       view.guitar.hollowStrings = [0, 1];
     }
     if (view.guitar) { view.guitar.nameOfPc = fns.nameOfPc; }
-    var notesP, inv = 0;
+    var notesP, inv = 0, threeOctaveView = false;
     if (card.pManual) { notesP = T.pianoNotesFromMidi(chord, card.pManual); view.pianoCaption = 'inserito a mano'; }
-    else { var pn = T.pianoNotes(chord, card.pInv); notesP = pn.notes; inv = pn.inv; view.pianoCaption = INV_LABEL[inv]; }
-    var range = T.pianoRange(notesP, state.octaves);
+    else {
+      var pn = T.pianoNotes(chord, card.pInv);
+      notesP = pn.notes.map(function (n) {
+        return { midi: n.midi + 12, pc: n.pc, role: n.role, note: n.note, degree: n.degree };
+      });
+      var chordRange = T.pianoRange(notesP, state.octaves);
+      threeOctaveView = state.octaves === '3' || (state.octaves === 'auto' && chordRange.octaves >= 3);
+      if (threeOctaveView) {
+        notesP.push({ midi: 48 + T.notePc(chord.root), pc: T.notePc(chord.root), role: 'bass', note: chord.root, degree: 0 });
+      } else notesP = positionPianoNotes(notesP, 48, 2);
+      inv = pn.inv;
+      view.pianoCaption = INV_LABEL[inv];
+    }
+    if (card.pManual && state.octaves === '2') notesP = positionPianoNotes(notesP, 48, 2);
+    var twoOctaveView = (!card.pManual && !threeOctaveView) || (card.pManual && state.octaves === '2');
+    var range = twoOctaveView ? { startC: 48, octaves: 2 } : T.pianoRange(notesP, state.octaves);
     view.piano = { notes: notesP, startC: range.startC, octaves: range.octaves };
     view.staff = { notes: tones.map(function (t) { return { l: t.note.l, a: t.note.a, degree: t.degree }; }).sort(function (p, q) { return p.degree - q.degree; }), bass: chord.bass || null };
     view.poster = posterName(chord);
