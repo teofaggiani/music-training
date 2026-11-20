@@ -165,6 +165,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .pattern-step[aria-pressed=false]{opacity:.55}
 .pattern-step .step-count{font-size:11px}
 .pattern-step .step-arrow{font-size:22px;line-height:1}
+.pattern-staff-wrap{margin-top:12px;padding:8px 10px;background:#fff;border:1px solid var(--ui-border);border-radius:8px;overflow-x:auto}
+.pattern-staff-wrap h3{margin:0 0 4px;font-size:14px;color:var(--ui-accent)}
+.pattern-staff-wrap svg{display:block;width:100%;height:auto}
 .card.suona{outline:5px solid var(--play-color);outline-offset:4px;border-radius:10px}
 .sheet.tavola{background:#fff8e7}
 .tav-testa svg{width:100%;height:auto;display:block}
@@ -290,8 +293,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
 <section id="area">
   <div class="tabs" role="tablist">
-    <button type="button" role="tab" id="tabbtn-foglio" aria-selected="true" data-tab="foglio">Foglio</button>
-    <button type="button" role="tab" id="tabbtn-manuale" aria-selected="false" data-tab="manuale">Manuale: clicca e scopri l'accordo</button>
+    <button type="button" role="tab" id="tabbtn-foglio" aria-selected="true" data-tab="foglio">Alleniamoci!</button>
+    <button type="button" role="tab" id="tabbtn-manuale" aria-selected="false" data-tab="manuale">Clicca e scopri l'accordo</button>
   </div>
 
   <div id="tab-foglio">
@@ -307,8 +310,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
           <input type="range" id="seq-bpm" min="40" max="160" step="1" value="80"></div>
         <div><label for="seq-strum">Strumento</label>
           <select id="seq-strum"><option value="chitarra">Chitarra</option><option value="piano">Pianoforte</option><option value="entrambi" selected>Chitarra e pianoforte</option></select></div>
-        <div><label for="seq-metronome-volume">Volume metronomo: <output id="seq-metronome-volume-val">100%</output></label>
-          <input type="range" id="seq-metronome-volume" min="0" max="1" step="0.05" value="1"></div>
+        <div><label for="seq-metronome-volume">Volume metronomo: <output id="seq-metronome-volume-val">50%</output></label>
+          <input type="range" id="seq-metronome-volume" min="0" max="1" step="0.01" value="0.5"></div>
       </div>
       <div id="seq-stato" class="aiuto" role="status" aria-live="polite">La sequenza inizia con un conteggio di 4 battiti. Ogni accordo dura una battuta in 4/4.</div>
     </div>
@@ -329,6 +332,11 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
       </div>
       <p class="aiuto">Seleziona o disattiva le frecce da riprodurre. Nel levare (↑) il volume è leggermente più basso.</p>
       <div id="pattern-grid" class="pattern-grid" role="group" aria-label="Seleziona i colpi del pattern"></div>
+      <div class="pattern-staff-wrap">
+        <h3>Pentagramma ritmico</h3>
+        <p class="aiuto">Una battuta comune a tutti gli accordi: le note indicano i colpi attivi, le pause quelli disattivati.</p>
+        <div id="pattern-staff"></div>
+      </div>
     </div>
   </div>
 
@@ -1402,7 +1410,7 @@ var Suono = (function () {
       click: function (when, accented, volume) { clickAt(when, accented, bus, volume); },
       chitarra: function (midis, when, hold, upstroke) {
         var notes = upstroke ? midis.slice().reverse() : midis;
-        chitarraAt(notes, when, 0.035, hold, bus, upstroke ? 0.75 : 1);
+        chitarraAt(notes, when, 0.035, hold, bus, upstroke ? 0.7 : 1);
       },
       piano: function (midis, when, hold, gain) { pianoAt(midis, when, hold, bus, gain); },
       stop: function () {
@@ -1440,7 +1448,7 @@ var Suono = (function () {
     }
   };
   var metronomeEnabled = false;
-  var metronomeVolume = 1;
+  var metronomeVolume = 0.5;
   var nextId = 1;
   var voicingCache = {};
   var man = { frets: [-1, -1, -1, -1, -1, -1], base: 1, keys: [] };
@@ -1453,6 +1461,12 @@ var Suono = (function () {
   function isFaMajor(chord) {
     return chord.root.l === 3 && chord.root.a === 0 && chord.type === 'maj' && !chord.bass;
   }
+  function isReMajor(chord) {
+    return chord.root.l === 1 && chord.root.a === 0 && chord.type === 'maj' && !chord.bass;
+  }
+  function isSiMinore(chord) {
+    return chord.root.l === 6 && chord.root.a === 0 && chord.type === 'm' && !chord.bass;
+  }
   function isSolMajor(chord) {
     return chord.root.l === 4 && chord.root.a === 0 && chord.type === 'maj' && !chord.bass;
   }
@@ -1462,7 +1476,31 @@ var Suono = (function () {
       if (isFaMajor(chord)) {
         var frets = [-1, 3, 3, 2, 1, -1], fg = T.fingering(frets);
         voicingCache[k] = [{ frets: frets, fingers: fg.fingers, barre: null, base: fg.base }];
-      } else voicingCache[k] = T.guitarVoicings(chord);
+      } else {
+        var voicings = T.guitarVoicings(chord);
+        if (isSiMinore(chord)) {
+          voicings.push({
+            frets: [2, 2, 4, 4, 3, 2],
+            fingers: [1, 1, 3, 4, 2, 1],
+            barre: { fret: 2, from: 0, to: 5 },
+            base: 1,
+            score: -1,
+            curated: true
+          });
+        }
+        if (isReMajor(chord) && voicings.length && voicings[0].frets.join(',') === '-1,-1,0,2,3,2') {
+          voicings[0].fingers = [0, 0, 0, 1, 3, 2];
+          voicings[0].barre = null;
+        }
+        var openCurated = [], barred = [], other = [];
+        voicings.forEach(function (voicing) {
+          if (voicing.barre) barred.push(voicing);
+          else if (voicing.curated) openCurated.push(voicing);
+          else other.push(voicing);
+        });
+        barred.sort(function (a, b) { return (a.barre.fret - b.barre.fret) || ((a.score || 0) - (b.score || 0)); });
+        voicingCache[k] = openCurated.concat(barred, other);
+      }
     }
     return voicingCache[k];
   }
@@ -1561,7 +1599,7 @@ var Suono = (function () {
   function saveState() {
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify({
-        v: 7, sequence: sequenceSelections, rhythm: rhythm, metronome: metronomeEnabled, metronomeVolume: metronomeVolume, look: state.look, show: state.show, tavTitolo: $('tav-titolo').value, prog: $('prog').value,
+        v: 9, sequence: sequenceSelections, rhythm: rhythm, metronome: metronomeEnabled, metronomeVolume: metronomeVolume, look: state.look, show: state.show, tavTitolo: $('tav-titolo').value, prog: $('prog').value,
         cards: state.cards.map(function (c) { return { chord: c.chord, gIdx: c.gIdx, gManual: c.gManual, pInv: c.pInv, pManual: c.pManual }; })
       }));
       $('salvataggio').textContent = 'Sequenza salvata automaticamente su questo dispositivo.';
@@ -1572,7 +1610,7 @@ var Suono = (function () {
   function restoreState() {
     try {
       var s = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
-      if (!s || (s.v !== 1 && s.v !== 2 && s.v !== 3 && s.v !== 4 && s.v !== 5 && s.v !== 6 && s.v !== 7) || !s.cards || !s.cards.length) return false;
+      if (!s || (s.v !== 1 && s.v !== 2 && s.v !== 3 && s.v !== 4 && s.v !== 5 && s.v !== 6 && s.v !== 7 && s.v !== 8 && s.v !== 9) || !s.cards || !s.cards.length) return false;
       var restoredSequence = sequenceSelections;
       if (s.v >= 2) {
         if (!Array.isArray(s.sequence) || !s.sequence.length) throw new Error('Sequenza salvata non valida.');
@@ -1608,14 +1646,27 @@ var Suono = (function () {
       }
       var cards = s.cards.map(function (c) {
         T.chordName(c.chord, 'int');      // se il dato e' rovinato, lancia e si riparte da zero
-        var extra = { gIdx: c.gIdx || 0, gManual: c.gManual || null, pManual: c.pManual || null };
+        var savedGIdx = c.gIdx || 0;
+        var extra = { gIdx: savedGIdx, gManual: c.gManual || null, pManual: c.pManual || null };
+        if (s.v < 9 && savedGIdx > 0 && !c.gManual && !isFaMajor(c.chord)) {
+          var oldVoicings = T.guitarVoicings(c.chord);
+          var oldVoicing = oldVoicings[savedGIdx % oldVoicings.length];
+          if (oldVoicing) {
+            var newVoicings = voicingsOf(c.chord);
+            var newIndex = newVoicings.findIndex(function (voicing) {
+              return voicing.frets.join(',') === oldVoicing.frets.join(',');
+            });
+            if (newIndex >= 0) extra.gIdx = newIndex;
+          }
+        }
         if (typeof c.pInv === 'number') extra.pInv = c.pInv;
         return makeCard(c.chord, extra);
       });
       sequenceSelections = restoredSequence;
       rhythm = restoredRhythm;
       metronomeEnabled = s.v >= 4 && s.metronome === true;
-      metronomeVolume = s.v >= 5 ? (s.v < 7 && s.metronomeVolume === 0.8 ? 1 : s.metronomeVolume) : 1;
+      var legacyDefaultVolume = (s.v <= 6 && s.metronomeVolume === 0.8) || (s.v === 7 && s.metronomeVolume === 1);
+      metronomeVolume = s.v >= 5 && !legacyDefaultVolume ? s.metronomeVolume : 0.5;
       state.cards = cards;
       // cosa disegnare: oggetto di tre interruttori, oppure il vecchio valore unico ('entrambi' | 'chitarra' | 'piano')
       var old = s.mostra || (typeof s.show === 'string' ? s.show : null);
@@ -1737,6 +1788,52 @@ var Suono = (function () {
         '" aria-label="' + (levare ? 'Croma ' + beat : 'Battito ' + beat) + ', ' + stroke + ', ' + action + '">' +
         '<span class="step-count">' + beat + '</span><span class="step-arrow" aria-hidden="true">' + (upstroke ? '&#8593;' : '&#8595;') + '</span></button>';
     }).join('');
+    renderRhythmStaff();
+  }
+  function renderRhythmStaff() {
+    var levare = rhythm.mode === 'battere-levare';
+    var pattern = rhythm.patterns[rhythm.mode], count = pattern.length;
+    var staffStart = 20, startX = 145, endX = 645, measureW = endX - startX;
+    var stepW = measureW / count, noteY = 42, svg = [];
+    var labels = pattern.map(function (active, i) {
+      var beat = levare ? (i % 2 ? 'e' : (i / 2 + 1)) : (i + 1);
+      return beat + ': ' + (active ? 'colpo' : 'pausa');
+    }).join(', ');
+    svg.push('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 104" role="img" aria-label="Battuta di 4/4: ' + D.esc(labels) + '">');
+    svg.push('<title>Pentagramma ritmico, battuta di 4/4</title>');
+    svg.push('<text x="22" y="68" font-size="54" font-family="Segoe UI Symbol, Noto Music, serif" fill="#1b1b1b">&#119070;</text>');
+    svg.push('<text x="116" y="39" text-anchor="middle" font-size="17" font-weight="700" fill="#1b1b1b">4</text>');
+    svg.push('<text x="116" y="59" text-anchor="middle" font-size="17" font-weight="700" fill="#1b1b1b">4</text>');
+    [22, 32, 42, 52, 62].forEach(function (y) {
+      svg.push('<line x1="' + staffStart + '" y1="' + y + '" x2="660" y2="' + y + '" stroke="#1b1b1b" stroke-width="1"/>');
+    });
+    svg.push('<line x1="' + startX + '" y1="22" x2="' + startX + '" y2="62" stroke="#1b1b1b" stroke-width="1.5"/>');
+    svg.push('<line x1="' + endX + '" y1="22" x2="' + endX + '" y2="62" stroke="#1b1b1b" stroke-width="1.5"/>');
+    pattern.forEach(function (active, i) {
+      var x = startX + stepW * (i + 0.5);
+      var beamed = levare && active && (i % 2 ? pattern[i - 1] : pattern[i + 1]);
+      svg.push('<g data-step-index="' + i + '" data-active="' + active + '" data-beamed="' + !!beamed + '">');
+      if (active) {
+        svg.push('<ellipse cx="' + x + '" cy="' + noteY + '" rx="7" ry="4.8" transform="rotate(-20 ' + x + ' ' + noteY + ')" fill="#1b1b1b"/>');
+        svg.push('<line x1="' + (x + 6) + '" y1="' + noteY + '" x2="' + (x + 6) + '" y2="21" stroke="#1b1b1b" stroke-width="2"/>');
+        if (levare && !beamed) svg.push('<path d="M' + (x + 6) + ' 21 C' + (x + 20) + ' 27 ' + (x + 18) + ' 35 ' + (x + 8) + ' 39" fill="none" stroke="#1b1b1b" stroke-width="2.5" stroke-linecap="round"/>');
+      } else if (levare) {
+        svg.push('<text x="' + x + '" y="56" text-anchor="middle" font-size="32" font-family="Bravura, Noto Music, Petaluma, Segoe UI Symbol, serif" fill="#1b1b1b">&#119102;</text>');
+      } else {
+        svg.push('<text x="' + x + '" y="56" text-anchor="middle" font-size="32" font-family="Bravura, Noto Music, Petaluma, Segoe UI Symbol, serif" fill="#1b1b1b">&#119101;</text>');
+      }
+      svg.push('<text x="' + x + '" y="91" text-anchor="middle" font-size="12" fill="#5d6470">' + (levare && i % 2 ? 'e' : (levare ? i / 2 + 1 : i + 1)) + '</text></g>');
+    });
+    if (levare) {
+      for (var i = 0; i < count; i += 2) {
+        if (!pattern[i] || !pattern[i + 1]) continue;
+        var x1 = startX + stepW * (i + 0.5) + 6;
+        var x2 = startX + stepW * (i + 1.5) + 6;
+        svg.push('<line x1="' + x1 + '" y1="21" x2="' + x2 + '" y2="21" stroke="#1b1b1b" stroke-width="4.5"/>');
+      }
+    }
+    svg.push('</svg>');
+    $('pattern-staff').innerHTML = svg.join('');
   }
   function sequenceChord(selection) {
     return T.parseChord(selection.root + (selection.mode === 'm' ? 'm' : ''));
@@ -1787,6 +1884,7 @@ var Suono = (function () {
     $('seq-metronome-volume').value = metronomeVolume;
     $('seq-metronome-volume-val').textContent = Math.round(metronomeVolume * 100) + '%';
   }
+  function metronomeGain() { return Math.pow(metronomeVolume, 0.35); }
   function applySequence() {
     var chords = sequenceSelections.map(sequenceChord);
     var old = state.cards;
@@ -1946,7 +2044,7 @@ var Suono = (function () {
       var stepDur = dur / pattern.length, guitarMidis = [];
       var beatDur = 60 / bpm;
       if (metronomeEnabled) {
-        for (var beatIndex = 0; beatIndex < 4; beatIndex++) seq.ctl.click(seq.next + beatIndex * beatDur, beatIndex === 0, metronomeVolume);
+        for (var beatIndex = 0; beatIndex < 4; beatIndex++) seq.ctl.click(seq.next + beatIndex * beatDur, beatIndex === 0, metronomeGain());
       }
       if (what !== 'piano' && view.guitar) {
         view.guitar.frets.forEach(function (f, s) { if (f >= 0) guitarMidis.push(T.OPEN_MIDI[s] + f); });
@@ -1957,7 +2055,7 @@ var Suono = (function () {
         var upstroke = rhythm.mode === 'battere-levare' && i % 2 === 1;
         var when = seq.next + i * stepDur;
         if (guitarMidis.length) seq.ctl.chitarra(guitarMidis, when, stepDur, upstroke);
-        if (pianoMidis.length) seq.ctl.piano(pianoMidis, when, stepDur, upstroke ? 0.75 : 1);
+        if (pianoMidis.length) seq.ctl.piano(pianoMidis, when, stepDur, upstroke ? 0.7 : 1);
       });
       seq.events.push({ t: seq.next, id: card.id, n: seq.idx + 1, of: state.cards.length, name: view.title });
       seq.next += dur;
@@ -1981,7 +2079,7 @@ var Suono = (function () {
     seq.beatDuration = 60 / bpm;
     seq.countInEnd = seq.countInStart + 4 * seq.beatDuration;
     seq.ctl = ctl; seq.on = true; seq.idx = 0; seq.next = seq.countInEnd; seq.events = []; seq.done = false;
-    for (var beatIndex = 0; beatIndex < 4; beatIndex++) ctl.click(seq.countInStart + beatIndex * seq.beatDuration, beatIndex === 0, metronomeVolume);
+    for (var beatIndex = 0; beatIndex < 4; beatIndex++) ctl.click(seq.countInStart + beatIndex * seq.beatDuration, beatIndex === 0, metronomeGain());
     seqUi(true);
     seq.timer = setInterval(tickSeq, 40);
     tickSeq();
