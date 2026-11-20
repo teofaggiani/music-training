@@ -1,0 +1,2011 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accordi per chitarra e pianoforte</title>
+<style>
+/* =====================================================================
+   STILE GRAFICO: tutte le costanti stanno in questo blocco :root.
+   Il disegno degli accordi (a schermo, in stampa, in SVG e in PNG) legge
+   questi valori: cambiandone uno cambia tutto.
+   I numeri senza unità (es. --dot-r: 9) sono misure del disegno.
+   ===================================================================== */
+:root{
+  /* Carattere e colori generali del foglio */
+  --font: Segoe UI, Arial, Helvetica, sans-serif;
+  --paper: #ffffff;           /* sfondo del foglio e dei PNG non trasparenti */
+  --ink: #1b1b1b;             /* testo e linee principali */
+  --muted: #5d6470;           /* testi secondari */
+  --title-color: #1b1b1b;     /* nome dell'accordo e titolo del foglio */
+  --title-size: 26;           /* nome dell'accordo */
+  --label-size: 12;           /* scritte del disegno */
+  --card-w: 340;              /* larghezza di una scheda accordo */
+  --card-pad: 14;
+  --card-radius: 10;
+  --card-border: #c4cad3;
+  --sheet-gap: 16;            /* spazio tra le schede nel file esportato */
+
+  /* Chitarra */
+  --g-gap: 22;                /* distanza tra le corde */
+  --g-fret: 28;               /* altezza di un tasto */
+  --line-w: 1.6;              /* spessore di corde e tasti */
+  --nut-w: 5;                 /* spessore del capotasto */
+  --string-color: #333333;
+  --fret-color: #7a7f87;
+  --mark-color: #333333;      /* X (corda muta) e O (corda libera) */
+  --dot-r: 9;                 /* raggio dei pallini */
+  --dot-color: #1f3a8a;
+  --dot-text: #ffffff;
+  --barre-color: var(--dot-color);   /* di norma uguale ai pallini */
+  --finger-1: #d32f2f;        /* colori delle dita (se attivi) */
+  --finger-2: #1976d2;
+  --finger-3: #2e7d32;
+  --finger-4: #c25400;
+
+  /* Pianoforte */
+  --key-white: #ffffff;
+  --key-black: #222222;
+  --key-line: #444444;
+  --key-line-w: 1;
+  --key-ratio: 4.2;           /* altezza / larghezza di un tasto bianco */
+  --key-w-max: 26;            /* larghezza massima di un tasto bianco */
+  --key-on: #f5a623;          /* tasto acceso (senza colori per ruolo) */
+  --key-on-text: #1b1b1b;
+  --key-black-text: #ffffff;
+  --role-root: #c62828;       /* colori per ruolo (se attivi) */
+  --role-third: #1565c0;
+  --role-fifth: #2e7d32;
+  --role-seventh: #8e24aa;
+  --role-ext: #b34700;
+  --role-bass: #5d4037;
+  --role-text: #ffffff;
+
+  /* Interfaccia (non fa parte del foglio) */
+  --ui-bg: #eef1f5;
+  --ui-panel: #ffffff;
+  --ui-accent: #1f3a8a;
+  --ui-accent-text: #ffffff;
+  --ui-border: #c4cad3;
+  --ui-error: #b3261e;
+  --play-color: #f5a623;      /* contorno della scheda che sta suonando */
+}
+/* Modalità "grande": linee più spesse, pallini e scritte più grandi */
+:root.grande{
+  --title-size: 32; --label-size: 16;
+  --g-gap: 28; --g-fret: 36; --line-w: 2.6; --nut-w: 8; --dot-r: 12.5;
+  --key-line-w: 1.8;
+}
+/* Modalità alto contrasto */
+:root.contrasto{
+  --paper: #ffffff; --ink: #000000; --muted: #000000; --title-color: #000000;
+  --card-border: #000000; --string-color: #000000; --fret-color: #000000; --mark-color: #000000;
+  --dot-color: #000000; --dot-text: #ffffff;
+  --key-black: #000000; --key-line: #000000; --key-line-w: 1.6; --line-w: 2.2; --nut-w: 7;
+  --key-on: #ffd400; --key-on-text: #000000;
+  --role-root: #b00000; --role-third: #0033cc; --role-fifth: #006400; --role-seventh: #6a0080; --role-ext: #8a3a00; --role-bass: #3e2723;
+  --finger-1: #b00000; --finger-2: #0033cc; --finger-3: #006400; --finger-4: #8a3a00;
+}
+:root.contrasto.grande{ --line-w: 3; --nut-w: 9; --key-line-w: 2.2; }
+
+/* ===== Interfaccia ===== */
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:var(--font);background:var(--ui-bg);color:#1b1b1b;font-size:15px;line-height:1.4}
+.app-head{background:var(--ui-accent);color:var(--ui-accent-text);padding:10px 20px}
+.app-head h1{margin:0;font-size:20px}
+.app-head p{margin:2px 0 0;font-size:13px;opacity:.9}
+.layout{display:grid;grid-template-columns:350px 1fr;gap:16px;padding:16px;align-items:start}
+.panel{background:var(--ui-panel);border:1px solid var(--ui-border);border-radius:10px;padding:12px 14px}
+.panel section{border-bottom:1px solid var(--ui-border);padding:10px 0}
+.panel section:last-child{border-bottom:0}
+.panel h2{margin:0 0 6px;font-size:15px;color:var(--ui-accent)}
+label{display:block;font-size:13px;font-weight:600;margin:6px 0 2px}
+label.inline{display:flex;gap:8px;align-items:center;font-weight:400;margin:4px 0}
+input[type=text],textarea,select{width:100%;font:inherit;padding:6px 8px;border:1px solid var(--ui-border);border-radius:6px;background:#fff}
+textarea{resize:vertical}
+button{font:inherit;cursor:pointer;border:1px solid var(--ui-border);background:#fff;border-radius:6px;padding:5px 10px}
+button:hover:not(:disabled){border-color:var(--ui-accent)}
+button:disabled{cursor:not-allowed;opacity:.4;pointer-events:none}
+button.primario{background:var(--ui-accent);color:var(--ui-accent-text);border-color:var(--ui-accent);font-weight:600}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid #f5a623;outline-offset:1px}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0}
+.row > *{flex:0 0 auto}
+.row.due > *{flex:1 1 0}
+.chip{font-size:12px;padding:3px 8px;border-radius:999px}
+.aiuto{font-size:12px;color:#5d6470;margin:4px 0}
+.errore{color:var(--ui-error);font-size:13px;min-height:1em}
+.stato{font-size:13px;color:var(--ui-accent);min-height:1.2em}
+.tabs{display:flex;gap:4px;margin-bottom:10px}
+.tabs button{border-radius:8px 8px 0 0;padding:8px 16px;font-weight:600}
+.tabs button[aria-selected=true]{background:var(--ui-accent);color:var(--ui-accent-text);border-color:var(--ui-accent)}
+.sheet{background:var(--paper);color:var(--ink);border:1px solid var(--ui-border);border-radius:10px;padding:18px;font-family:var(--font)}
+.sheet-head input{display:block;width:100%;border:1px dashed transparent;background:transparent;font-family:var(--font);color:var(--title-color);padding:2px 4px;border-radius:4px}
+.sheet-head input:hover,.sheet-head input:focus{border-color:var(--ui-border)}
+#titolo{font-size:30px;font-weight:700}
+#sottotitolo{font-size:17px;color:var(--muted)}
+.griglia{display:grid;gap:14px;margin-top:14px;align-items:start}
+.card{break-inside:avoid;background:var(--paper)}
+.card-svg svg{width:100%;height:auto;display:block}
+.card-tools{display:flex;flex-wrap:wrap;gap:4px;align-items:center;justify-content:center;margin-top:4px;font-size:12px}
+.card-tools button,.card-tools select{font-size:12px;padding:3px 7px;width:auto}
+.card-tools .grp{display:inline-flex;gap:3px;align-items:center;border:1px solid var(--ui-border);border-radius:6px;padding:1px 4px}
+.vuoto{padding:30px;text-align:center;color:var(--muted)}
+.legenda svg{max-width:100%;height:auto;display:block;margin:10px auto 0}
+.ed-wrap{background:var(--ui-panel);border:1px solid var(--ui-border);border-radius:10px;padding:14px;margin-bottom:14px}
+.ed-wrap h2{margin:0 0 6px;font-size:16px;color:var(--ui-accent)}
+.ed-wrap svg{max-width:100%;height:auto}
+.ed-grid{display:grid;grid-template-columns:minmax(240px,320px) 1fr;gap:16px;align-items:start}
+.hit{fill:rgba(0,0,0,0);cursor:pointer}
+.hit:hover{fill:rgba(31,58,138,.18)}
+.risultato{font-size:16px;margin:8px 0}
+.risultato strong{font-size:22px}
+.costruisci{background:#f6f8fc;border:1px solid var(--ui-border);border-radius:8px;padding:6px 10px;margin-bottom:8px}
+.armonia h3{margin:8px 0 2px;font-size:13px;color:var(--ui-accent)}
+.armonia .aiuto{margin:2px 0 6px}
+.sug-lista{display:flex;flex-wrap:wrap;gap:6px}
+.sug{display:inline-flex;align-items:stretch;border:1px solid var(--ui-border);border-radius:999px;overflow:hidden;background:#fff}
+.sug button{border:0;border-radius:0;background:transparent;padding:4px 9px;line-height:1.15}
+.sug button:hover{background:#eaf0ff}
+.sug .sug-add{font-weight:600}
+.sug .sug-add small{display:block;font-size:10px;font-weight:400;color:var(--muted)}
+.sug .sug-play{border-left:1px solid var(--ui-border);font-size:11px;padding:4px 8px}
+.sug.top{border:2px solid var(--ui-accent);background:#eaf0ff}
+.sug.relativa{border:2px dashed var(--ui-accent)}
+.seq-bar{padding:10px 14px 4px}
+.seq-opz > div{flex:1 1 150px}
+.seq-opz input[type=range]{width:100%}
+.card.suona{outline:5px solid var(--play-color);outline-offset:4px;border-radius:10px}
+.sheet.tavola{background:#fff8e7}
+.tav-testa svg{width:100%;height:auto;display:block}
+.sheet.tavola .card{background:transparent}
+.card-tools .bloccato{background:#2b2f3a;color:#fff;border-color:#2b2f3a}
+[hidden]{display:none !important}
+@media (max-width: 980px){ .layout{grid-template-columns:1fr} .ed-grid{grid-template-columns:1fr} }
+
+/* ===== Stampa: solo il foglio, su A4 ===== */
+@page{ size: A4; margin: 12mm }
+@media print{
+  html,body{background:#fff}
+  .app-head,.panel,.tabs,.card-tools,#tab-manuale,.nostampa{display:none !important}
+  .layout{display:block;padding:0}
+  .sheet{border:0;padding:0;border-radius:0}
+  .card.suona{outline:0}
+  .sheet-head input{border:0 !important;padding:0}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<header class="app-head">
+  <h1>Accordi per chitarra e pianoforte</h1>
+  <p>Scrivi una progressione, ottieni un foglio con i diagrammi corretti da stampare o esportare.</p>
+</header>
+
+<main class="layout">
+<aside class="panel" aria-label="Impostazioni">
+  <section class="aspetto">
+    <h2>Foglio normale o tavola colorata</h2>
+    <label for="aspetto">Aspetto del foglio</label>
+    <select id="aspetto"><option value="normale" selected>Normale</option><option value="tavola">Tavola colorata per la classe</option></select>
+    <div id="tav-opz" hidden>
+      <label for="tav-titolo">Titolo della tavola</label>
+      <input type="text" id="tav-titolo" value="Tavola riassuntiva degli accordi studiati">
+      <div class="row">
+        <button id="tav-sblocca" type="button">&#128275; Sblocca tutti</button>
+        <button id="tav-blocca" type="button">&#128274; Blocca tutti</button>
+      </div>
+      <p class="aiuto">Su ogni scheda c'è il pulsante Blocca o Sblocca: un accordo bloccato nasconde i diagrammi dietro a un chitarrista con il lucchetto. Il foglio viene ricordato in questo browser.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>1. Costruisci gli accordi</h2>
+    <div class="costruisci">
+      <div class="row due">
+        <div><label for="add-nota">Nota</label><select id="add-nota"></select></div>
+        <div><label for="add-tipo">Tipo</label><select id="add-tipo"></select></div>
+      </div>
+      <div class="row"><button id="anteprima" type="button">&#9654; Ascolta</button><button id="aggiungi" type="button" class="primario">Aggiungi al foglio</button></div>
+      <div id="armonia" class="armonia" aria-live="polite"></div>
+    </div>
+    <label for="prog">Oppure scrivi la progressione</label>
+    <textarea id="prog" rows="2" spellcheck="false">C G Am F</textarea>
+    <div class="row"><button id="applica" class="primario" type="button">Crea il foglio</button></div>
+    <div class="row">
+      <button class="chip" type="button" data-prog="C G Am F">C G Am F</button>
+      <button class="chip" type="button" data-prog="Do Sol Lam Fa">Do Sol Lam Fa</button>
+      <button class="chip" type="button" data-prog="Am Dm E7 Am">Am Dm E7 Am</button>
+      <button class="chip" type="button" data-prog="D G A7 D">D G A7 D</button>
+    </div>
+    <p class="aiuto">Vanno bene sia C G Am F sia Do Sol Lam Fa. Separa con spazi o virgole. Altri esempi: Bb, F#m7b5, Ebmaj7, Bdim7, Do/Mi.</p>
+    <div id="errori" class="errore" role="alert"></div>
+  </section>
+
+  <section>
+    <h2>2. Come si leggono</h2>
+    <label>Nomi degli accordi</label>
+    <label class="inline"><input type="radio" name="notazione" value="int" checked> Internazionale (C, Am)</label>
+    <label class="inline"><input type="radio" name="notazione" value="it"> Italiana (Do, Lam)</label>
+    <label>Cosa disegnare</label>
+    <label class="inline"><input type="checkbox" id="mostra-g" checked> Chitarra</label>
+    <label class="inline"><input type="checkbox" id="mostra-p" checked> Tastiera (pianoforte)</label>
+    <label class="inline"><input type="checkbox" id="mostra-s"> Pentagramma</label>
+    <p class="aiuto">Si possono accendere in qualunque combinazione. Ne resta sempre acceso almeno uno.</p>
+    <div class="row due">
+      <div><label for="colonne">Colonne</label>
+      <select id="colonne"><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></div>
+      <div id="opz-nomi"><label for="nomi">Nomi delle note</label>
+      <select id="nomi"><option value="nessuno">Nessuno</option><option value="accordo" selected>Solo dell'accordo</option><option value="tutti">Tutti i tasti</option></select></div>
+    </div>
+  </section>
+
+  <section id="opz-strumenti">
+    <h2>3. Chitarra e pianoforte</h2>
+    <div id="opz-g">
+      <label class="inline"><input type="checkbox" id="mancina"> Chitarra per mancini</label>
+      <label class="inline"><input type="checkbox" id="numeri" checked> Numeri delle dita</label>
+      <label class="inline"><input type="checkbox" id="coloridita"> Colori delle dita (1 a 4)</label>
+    </div>
+    <div id="opz-p">
+      <label class="inline"><input type="checkbox" id="ruoli"> Colori per ruolo sul pianoforte</label>
+      <label for="ottave">Ottave del pianoforte</label>
+      <select id="ottave"><option value="auto" selected>Automatico (2, 3 se serve)</option><option value="2">2 ottave</option><option value="3">3 ottave</option></select>
+    </div>
+  </section>
+
+  <section>
+    <h2>4. Ascolto</h2>
+    <label for="volume">Volume</label>
+    <input type="range" id="volume" min="0" max="1" step="0.05" value="0.7">
+    <p class="aiuto">Ogni scheda ha il pulsante "Ascolta". Chitarra: le corde suonano una dopo l'altra, dalla più grave alla più acuta; con Maiusc premuto, o con il pulsante "Arpeggio", le note si sentono più distanziate. Pianoforte: tutte le note insieme.</p>
+  </section>
+
+  <section>
+    <h2>5. Accessibilità</h2>
+    <label class="inline"><input type="checkbox" id="grande"> Modalità grande (linee e scritte più grandi)</label>
+    <label class="inline"><input type="checkbox" id="contrasto"> Alto contrasto</label>
+  </section>
+
+  <section>
+    <h2>6. Esporta e stampa</h2>
+    <label for="sfondo">Sfondo di SVG e PNG</label>
+    <select id="sfondo"><option value="bianco" selected>Bianco</option><option value="trasparente">Trasparente</option></select>
+    <div class="row">
+      <button id="esp-svg" type="button">Foglio SVG</button>
+      <button id="esp-png" type="button">Foglio PNG</button>
+      <button id="stampa" type="button" class="primario">Stampa (A4)</button>
+    </div>
+    <p class="aiuto">Ogni scheda ha anche i suoi pulsanti SVG e PNG. In stampa scompaiono tutti i comandi.</p>
+    <div id="stato" class="stato" role="status" aria-live="polite"></div>
+  </section>
+</aside>
+
+<section id="area">
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" id="tabbtn-foglio" aria-selected="true" data-tab="foglio">Foglio</button>
+    <button type="button" role="tab" id="tabbtn-manuale" aria-selected="false" data-tab="manuale">Manuale: clicca e scopri l'accordo</button>
+  </div>
+
+  <div id="tab-foglio">
+    <div class="ed-wrap nostampa seq-bar" role="group" aria-label="Suona la sequenza">
+      <div class="row">
+        <button id="seq-play" type="button" class="primario">&#9654; Suona la sequenza</button>
+        <button id="seq-stop" type="button" disabled>&#9632; Ferma</button>
+        <label class="inline" for="seq-loop"><input type="checkbox" id="seq-loop"> Ripeti</label>
+      </div>
+      <div class="row seq-opz">
+        <div><label for="seq-bpm">Tempo: <output id="seq-bpm-val">80</output> battiti al minuto</label>
+          <input type="range" id="seq-bpm" min="40" max="160" step="1" value="80"></div>
+        <div><label for="seq-beats">Battiti per accordo</label>
+          <select id="seq-beats"><option>1</option><option>2</option><option>3</option><option selected>4</option><option>6</option><option>8</option></select></div>
+        <div><label for="seq-strum">Strumento</label>
+          <select id="seq-strum"><option value="chitarra">Chitarra</option><option value="piano">Pianoforte</option><option value="entrambi" selected>Chitarra e pianoforte</option></select></div>
+      </div>
+      <div id="seq-stato" class="aiuto" role="status" aria-live="polite">Suona gli accordi del foglio uno dopo l'altro, nell'ordine in cui sono disposti.</div>
+    </div>
+    <div class="sheet" id="sheet">
+      <div id="tav-testa" class="tav-testa" hidden></div>
+      <div class="sheet-head" id="sheet-head">
+        <input type="text" id="titolo" value="Il mio foglio di accordi" aria-label="Titolo del foglio" placeholder="Titolo">
+        <input type="text" id="sottotitolo" value="" aria-label="Sottotitolo del foglio" placeholder="Sottotitolo (facoltativo)">
+      </div>
+      <div id="griglia" class="griglia"></div>
+      <div id="legenda" class="legenda"></div>
+    </div>
+  </div>
+
+  <div id="tab-manuale" hidden>
+    <div class="ed-wrap">
+      <h2>Chitarra</h2>
+      <p class="aiuto">Clicca su un tasto per mettere o togliere un pallino. Clicca sopra le corde per alternare corda muta (X) e corda libera (O). Con il menu scegli da quale tasto partire.</p>
+      <div class="ed-grid">
+        <div>
+          <label for="man-base">Primo tasto mostrato</label>
+          <select id="man-base"></select>
+          <div id="man-g"></div>
+        </div>
+        <div>
+          <div id="man-g-ris" class="risultato"></div>
+          <div class="row"><button id="man-g-play" type="button">&#9654; Ascolta</button><button id="man-g-add" type="button" class="primario">Aggiungi al foglio</button><button id="man-g-reset" type="button">Azzera</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="ed-wrap">
+      <h2>Pianoforte</h2>
+      <p class="aiuto">Clicca i tasti per accenderli o spegnerli. Il tasto più basso è considerato il basso dell'accordo.</p>
+      <div id="man-p"></div>
+      <div id="man-p-ris" class="risultato"></div>
+      <div class="row"><button id="man-p-play" type="button">&#9654; Ascolta</button><button id="man-p-add" type="button" class="primario">Aggiungi al foglio</button><button id="man-p-reset" type="button">Azzera</button></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- ======================= TEORIA (nessun DOM) ======================= -->
+<script id="teoria">
+var Teoria = (function () {
+  'use strict';
+  var LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+  var LETTER_PC = [0, 2, 4, 5, 7, 9, 11];
+  var IT = ['Do', 'Re', 'Mi', 'Fa', 'Sol', 'La', 'Si'];
+  var IT_LC = ['do', 're', 'mi', 'fa', 'sol', 'la', 'si'];
+  var OPEN_MIDI = [40, 45, 50, 55, 59, 64];            // E A D G B e, accordatura standard
+  var SHARP_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  var PREF_ROOT = [[0, 0], [1, -1], [1, 0], [2, -1], [2, 0], [3, 0], [3, 1], [4, 0], [5, -1], [5, 0], [6, -1], [6, 0]];
+  var ROOT_NAMES = ['C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B'];
+
+  function mod(n, m) { return ((n % m) + m) % m; }
+
+  // tones: [grado, semitoni dalla fondamentale]. Il grado decide la lettera, i semitoni l'alterazione.
+  var TYPES = [
+    { id: 'maj',   sym: '',      label: 'maggiore',             tones: [[1, 0], [3, 4], [5, 7]] },
+    { id: 'm',     sym: 'm',     label: 'minore (m)',           tones: [[1, 0], [3, 3], [5, 7]] },
+    { id: '7',     sym: '7',     label: 'settima (7)',          tones: [[1, 0], [3, 4], [5, 7], [7, 10]] },
+    { id: 'maj7',  sym: 'maj7',  label: 'settima maggiore (maj7)', tones: [[1, 0], [3, 4], [5, 7], [7, 11]] },
+    { id: 'm7',    sym: 'm7',    label: 'minore settima (m7)',  tones: [[1, 0], [3, 3], [5, 7], [7, 10]] },
+    { id: 'dim',   sym: 'dim',   label: 'diminuito (dim)',      tones: [[1, 0], [3, 3], [5, 6]] },
+    { id: 'dim7',  sym: 'dim7',  label: 'diminuito settima (dim7)', tones: [[1, 0], [3, 3], [5, 6], [7, 9]] },
+    { id: 'm7b5',  sym: 'm7b5',  label: 'semidiminuito (m7b5)', tones: [[1, 0], [3, 3], [5, 6], [7, 10]] },
+    { id: 'aug',   sym: 'aug',   label: 'aumentato (aug)',      tones: [[1, 0], [3, 4], [5, 8]] },
+    { id: 'sus2',  sym: 'sus2',  label: 'sospeso 2 (sus2)',     tones: [[1, 0], [2, 2], [5, 7]] },
+    { id: 'sus4',  sym: 'sus4',  label: 'sospeso 4 (sus4)',     tones: [[1, 0], [4, 5], [5, 7]] },
+    { id: 'add9',  sym: 'add9',  label: 'con nona aggiunta (add9)', tones: [[1, 0], [3, 4], [5, 7], [9, 14]] },
+    { id: '6',     sym: '6',     label: 'sesta (6)',            tones: [[1, 0], [3, 4], [5, 7], [6, 9]] },
+    { id: 'm6',    sym: 'm6',    label: 'minore sesta (m6)',    tones: [[1, 0], [3, 3], [5, 7], [6, 9]] },
+    { id: '9',     sym: '9',     label: 'nona (9)',             tones: [[1, 0], [3, 4], [5, 7], [7, 10], [9, 14]] }
+  ];
+  var TYPE_BY_ID = {};
+  TYPES.forEach(function (t, i) { t.index = i; TYPE_BY_ID[t.id] = t; });
+
+  // Suffissi accettati. EXACT distingue maiuscole (M = maggiore), LOWER no.
+  var EXACT = { 'M': 'maj', 'M7': 'maj7', 'Maj7': 'maj7', 'Δ': 'maj7', 'Δ7': 'maj7', 'ø': 'm7b5', 'ø7': 'm7b5' };
+  var LOWER = {
+    '': 'maj', 'maj': 'maj', 'major': 'maj', 'maggiore': 'maj',
+    'm': 'm', 'min': 'm', 'minor': 'm', '-': 'm',
+    '7': '7', 'dom7': '7',
+    'maj7': 'maj7', '7+': 'maj7', '7m': 'maj7', 'major7': 'maj7',
+    'm7': 'm7', 'min7': 'm7', '-7': 'm7', 'minor7': 'm7',
+    'dim': 'dim', '°': 'dim',
+    'dim7': 'dim7', '°7': 'dim7',
+    'm7b5': 'm7b5', 'm7-5': 'm7b5', 'min7b5': 'm7b5', '-7b5': 'm7b5',
+    'aug': 'aug', '+': 'aug', 'aug5': 'aug', '#5': 'aug',
+    'sus2': 'sus2', 'sus4': 'sus4', 'sus': 'sus4',
+    'add9': 'add9', 'add2': 'add9',
+    '6': '6', 'm6': 'm6', 'min6': 'm6', '-6': 'm6',
+    '9': '9', 'dom9': '9'
+  };
+  function suffixToType(s) {
+    if (Object.prototype.hasOwnProperty.call(EXACT, s)) return EXACT[s];
+    var l = s.toLowerCase();
+    return Object.prototype.hasOwnProperty.call(LOWER, l) ? LOWER[l] : null;
+  }
+
+  function notePc(n) { return mod(LETTER_PC[n.l] + n.a, 12); }
+  function accSymbols(a, ascii) {
+    var out = '';
+    for (var i = 0; i < Math.abs(a); i++) out += a > 0 ? (ascii ? '#' : '♯') : (ascii ? 'b' : '♭');
+    return out;
+  }
+  function noteName(n, notation, ascii) {
+    return (notation === 'it' ? IT[n.l] : LETTERS[n.l]) + accSymbols(n.a, ascii);
+  }
+  function pcName(pc, notation) {
+    var n = { l: PREF_ROOT[pc][0], a: PREF_ROOT[pc][1] };
+    if (SHARP_NAMES[pc].length === 2) n = { l: LETTERS.indexOf(SHARP_NAMES[pc].charAt(0)), a: 1 };
+    return noteName(n, notation, false);
+  }
+
+  // ---- lettura del testo ----
+  function withAcc(l, s, len) {
+    var a = 0, n = 0;
+    while (n < 2) {
+      var c = s.charAt(len);
+      if (c === '#') a++; else if (c === 'b') a--; else break;
+      len++; n++;
+    }
+    return { l: l, a: a, len: len };
+  }
+  function rootCandidates(s) {
+    var out = [];
+    var m = /^(sol|do|re|mi|fa|la|si)/i.exec(s);
+    if (m) out.push(withAcc(IT_LC.indexOf(m[1].toLowerCase()), s, m[1].length));
+    m = /^[A-Ga-g]/.exec(s);
+    if (m) out.push(withAcc(LETTERS.indexOf(m[0].toUpperCase()), s, 1));
+    return out;
+  }
+  function parseNote(s) {
+    s = normalizeText(s);
+    var c = rootCandidates(s);
+    for (var i = 0; i < c.length; i++) if (c[i].len === s.length) return { l: c[i].l, a: c[i].a };
+    return null;
+  }
+  function normalizeText(s) {
+    return s.replace(/♯/g, '#').replace(/♭/g, 'b').replace(/[–−]/g, '-');
+  }
+  function parseChord(tok) {
+    tok = normalizeText(tok);
+    var parts = tok.split('/');
+    if (parts.length > 2 || parts[0] === '') return null;
+    var bass = null;
+    if (parts.length === 2) {
+      bass = parseNote(parts[1]);
+      if (!bass) return null;
+    }
+    var cands = rootCandidates(parts[0]);
+    for (var i = 0; i < cands.length; i++) {
+      var type = suffixToType(parts[0].slice(cands[i].len));
+      if (type) return { root: { l: cands[i].l, a: cands[i].a }, type: type, bass: bass };
+    }
+    return null;
+  }
+  function parseProgression(text) {
+    var toks = text.split(/[\s,;|]+/).filter(function (t) { return t && !/^[-–—|\/]+$/.test(t); });
+    var chords = [], errors = [];
+    toks.forEach(function (t) {
+      var c = parseChord(t);
+      if (c) chords.push(c); else errors.push(t);
+    });
+    return { chords: chords, errors: errors };
+  }
+
+  // ---- teoria dell'accordo ----
+  function roleOf(deg) {
+    if (deg === 1) return 'root';
+    if (deg === 2 || deg === 3 || deg === 4) return 'third';
+    if (deg === 5) return 'fifth';
+    if (deg === 6 || deg === 7) return 'seventh';
+    return 'ext';
+  }
+  function chordTones(chord) {
+    var t = TYPE_BY_ID[chord.type];
+    var rootPc = notePc(chord.root);
+    return t.tones.map(function (d) {
+      var l = (chord.root.l + d[0] - 1) % 7;
+      var pc = mod(rootPc + d[1], 12);
+      var a = mod(pc - LETTER_PC[l] + 6, 12) - 6;
+      return { degree: d[0], semis: d[1], pc: pc, note: { l: l, a: a }, role: roleOf(d[0]) };
+    });
+  }
+  function nameMap(chord) {
+    var m = {};
+    chordTones(chord).forEach(function (t) { m[t.pc] = t.note; });
+    if (chord.bass) m[notePc(chord.bass)] = chord.bass;
+    return m;
+  }
+  function chordName(chord, notation) {
+    var s = noteName(chord.root, notation, true) + TYPE_BY_ID[chord.type].sym;
+    if (chord.bass) s += '/' + noteName(chord.bass, notation, true);
+    return s;
+  }
+  function chordSig(chord) {
+    return chord.root.l + '.' + chord.root.a + '.' + chord.type + '.' + (chord.bass ? chord.bass.l + '.' + chord.bass.a : '-');
+  }
+  function chordInfo(chord) {
+    var tones = chordTones(chord);
+    var rootPc = notePc(chord.root);
+    var bassPc = chord.bass ? notePc(chord.bass) : rootPc;
+    var allowed = {}, required = {};
+    tones.forEach(function (t) {
+      allowed[t.pc] = true;
+      // la quinta giusta si può omettere negli accordi di 4 o più note
+      var omit = t.degree === 5 && t.semis === 7 && tones.length >= 4;
+      if (!omit) required[t.pc] = true;
+    });
+    allowed[bassPc] = true; required[bassPc] = true;
+    return { tones: tones, rootPc: rootPc, bassPc: bassPc, allowed: allowed, required: required };
+  }
+
+  // riconosce un insieme di altezze (0..11) e restituisce gli accordi possibili, il più probabile per primo
+  function identify(pcs, bassPc) {
+    var set = {}, n = 0;
+    pcs.forEach(function (p) { if (!set[p]) { set[p] = true; n++; } });
+    if (n < 3) return [];
+    var out = [];
+    for (var r = 0; r < 12; r++) {
+      TYPES.forEach(function (t) {
+        if (t.tones.length !== n) return;
+        var ok = t.tones.every(function (d) { return set[mod(r + d[1], 12)]; });
+        if (!ok) return;
+        var chord = { root: { l: PREF_ROOT[r][0], a: PREF_ROOT[r][1] }, type: t.id, bass: null };
+        if (r !== bassPc) {
+          var tone = chordTones(chord).filter(function (x) { return x.pc === bassPc; })[0];
+          chord.bass = tone.note;
+        }
+        out.push({ chord: chord, rank: (r === bassPc ? 0 : 100) + t.index });
+      });
+    }
+    out.sort(function (a, b) { return a.rank - b.rank; });
+    return out.map(function (o) { return o.chord; });
+  }
+
+  // ---- chitarra ----
+  // Diteggiatura: barre se almeno 3 corde adiacenti stanno sul tasto più basso; poi le altre dita in ordine.
+  function fingering(frets) {
+    var fingers = [0, 0, 0, 0, 0, 0], s, m = 99, maxF = 0;
+    for (s = 0; s < 6; s++) if (frets[s] > 0) { if (frets[s] < m) m = frets[s]; if (frets[s] > maxF) maxF = frets[s]; }
+    if (m === 99) return { fingers: fingers, barre: null, n: 0, base: 1, minF: 0, maxF: 0 };
+    var atM = [];
+    for (s = 0; s < 6; s++) if (frets[s] === m) atM.push(s);
+    var barre = null;
+    if (atM.length >= 2) {
+      var a = atM[0], b = atM[atM.length - 1], ok = (b - a >= 2);
+      for (s = a; s <= b && ok; s++) if (frets[s] < m) ok = false;
+      if (ok) barre = { fret: m, from: a, to: b };
+    }
+    var next = 1;
+    if (barre) { for (s = barre.from; s <= barre.to; s++) if (frets[s] === m) fingers[s] = 1; next = 2; }
+    var rest = [];
+    for (s = 0; s < 6; s++) if (frets[s] > 0 && fingers[s] === 0) rest.push(s);
+    rest.sort(function (x, y) { return (frets[x] - frets[y]) || (x - y); });
+    rest.forEach(function (x) { fingers[x] = next++; });
+    return { fingers: fingers, barre: barre, n: next - 1, base: maxF <= 5 ? 1 : m, minF: m, maxF: maxF };
+  }
+
+  // Controlla un voicing: ogni corda suonata è una nota dell'accordo, basso giusto, note richieste presenti,
+  // corde suonate contigue, almeno 4, finestra di 4 tasti, al massimo 4 dita.
+  function evalVoicing(frets, info) {
+    var present = {}, first = -1, last = -1, count = 0, s;
+    for (s = 0; s < 6; s++) {
+      var f = frets[s];
+      if (f < 0) continue;
+      var pc = (OPEN_MIDI[s] + f) % 12;
+      if (!info.allowed[pc]) return null;
+      if (first < 0) first = s;
+      last = s; count++; present[pc] = true;
+    }
+    if (count < 4 || count !== last - first + 1) return null;
+    if ((OPEN_MIDI[first] + frets[first]) % 12 !== info.bassPc) return null;
+    for (var p in info.required) if (!present[p]) return null;
+    var fg = fingering(frets);
+    if (fg.n > 4) return null;
+    if (fg.maxF && fg.maxF - fg.minF > 3) return null;
+    var span = fg.maxF ? fg.maxF - fg.minF : 0;
+    var score = fg.n + span * 0.45 + (fg.minF || 0) * 0.12 + (6 - count) * 0.3 - count * 0.2 + (fg.barre ? 0.4 : 0);
+    return { frets: frets, fingers: fg.fingers, barre: fg.barre, base: fg.base, count: count, score: score, curated: false };
+  }
+
+  function shape(str) {
+    return str.split('').map(function (c) { return c === 'x' ? -1 : parseInt(c, 10); });
+  }
+  // Posizioni aperte classiche (corde dalla più grave E alla più acuta e). Chiave: altezza della fondamentale.
+  var OPEN_SHAPES = {
+    0:  { 'maj': ['x32010'], '7': ['x32310'], 'maj7': ['x32000'], 'add9': ['x32030'], '6': ['x32210'], 'sus4': ['x33011'] },
+    2:  { 'maj': ['xx0232'], '7': ['xx0212'], 'm': ['xx0231'], 'm7': ['xx0211'], 'maj7': ['xx0222'], 'sus2': ['xx0230'], 'sus4': ['xx0233'], '6': ['xx0202'], 'm6': ['xx0201'], 'dim': ['xx0131'] },
+    4:  { 'maj': ['022100'], '7': ['020100'], 'm': ['022000'], 'm7': ['022030', '020000'], 'maj7': ['021100'], 'sus4': ['022200'], 'sus2': ['024400'], '6': ['022120'], 'm6': ['022020'], '9': ['020102'], 'aug': ['032110'], 'add9': ['022102'] },
+    5:  { 'maj7': ['xx3210'] },
+    7:  { 'maj': ['320003', '320033'], '7': ['320001'], 'maj7': ['320002'], '6': ['320000'], 'add9': ['320203'], 'sus4': ['330013'], 'sus2': ['300033'] },
+    9:  { 'maj': ['x02220'], '7': ['x02020'], 'm': ['x02210'], 'm7': ['x02010'], 'maj7': ['x02120'], 'sus2': ['x02200'], 'sus4': ['x02230'], '6': ['x02222'], 'm6': ['x02212'], 'add9': ['x02420'], 'aug': ['x03221'] },
+    11: { '7': ['x21202'] }
+  };
+  // Forme mobili con barre: fondamentale sulla corda 6 (E) o sulla corda 5 (A). null = corda muta.
+  var E_SHAPES = {
+    'maj': [0, 2, 2, 1, 0, 0], 'm': [0, 2, 2, 0, 0, 0], '7': [0, 2, 0, 1, 0, 0], 'm7': [0, 2, 0, 0, 0, 0],
+    'maj7': [0, 2, 1, 1, 0, 0], 'sus4': [0, 2, 2, 2, 0, 0], '6': [0, 2, 2, 1, 2, 0], 'm6': [0, 2, 2, 0, 2, 0], '9': [0, 2, 0, 1, 0, 2]
+  };
+  var A_SHAPES = {
+    'maj': [null, 0, 2, 2, 2, 0], 'm': [null, 0, 2, 2, 1, 0], '7': [null, 0, 2, 0, 2, 0], 'm7': [null, 0, 2, 0, 1, 0],
+    'maj7': [null, 0, 2, 1, 2, 0], 'sus2': [null, 0, 2, 2, 0, 0], 'sus4': [null, 0, 2, 2, 3, 0], '6': [null, 0, 2, 2, 2, 2],
+    'm6': [null, 0, 2, 2, 1, 2], 'dim': [null, 0, 1, 2, 1, null], 'm7b5': [null, 0, 1, 0, 1, null], 'aug': [null, 0, 3, 2, 2, 1]
+  };
+
+  function rawCurated(chord) {
+    if (chord.bass && notePc(chord.bass) !== notePc(chord.root)) return [];
+    var byType = OPEN_SHAPES[notePc(chord.root)];
+    return (byType && byType[chord.type] ? byType[chord.type] : []).map(shape);
+  }
+  function rawTemplates(chord) {
+    if (chord.bass && notePc(chord.bass) !== notePc(chord.root)) return [];
+    var rootPc = notePc(chord.root), out = [];
+    var pe = mod(rootPc - 4, 12), pa = mod(rootPc - 9, 12);
+    if (pe > 0 && E_SHAPES[chord.type]) out.push(E_SHAPES[chord.type].map(function (r) { return r === null ? -1 : r + pe; }));
+    if (pa > 0 && A_SHAPES[chord.type]) out.push(A_SHAPES[chord.type].map(function (r) { return r === null ? -1 : r + pa; }));
+    return out;
+  }
+
+  function searchVoicings(info) {
+    var res = [], seen = {};
+    for (var lo = 1; lo <= 9; lo++) {
+      var opts = [];
+      for (var s = 0; s < 6; s++) {
+        var o = [-1];
+        if (lo <= 2 && info.allowed[OPEN_MIDI[s] % 12]) o.push(0);
+        for (var f = lo; f <= lo + 3; f++) if (info.allowed[(OPEN_MIDI[s] + f) % 12]) o.push(f);
+        opts.push(o);
+      }
+      var cur = [0, 0, 0, 0, 0, 0];
+      var dfs = function (st, started, ended) {
+        if (st === 6) {
+          if (!started) return;
+          var key = cur.join(',');
+          if (seen[key]) return;
+          seen[key] = true;
+          var ev = evalVoicing(cur.slice(), info);
+          if (ev) res.push(ev);
+          return;
+        }
+        for (var k = 0; k < opts[st].length; k++) {
+          var fr = opts[st][k];
+          if (fr === -1) { cur[st] = -1; dfs(st + 1, started, started); }
+          else {
+            if (ended) continue;
+            if (!started && (OPEN_MIDI[st] + fr) % 12 !== info.bassPc) continue;
+            cur[st] = fr; dfs(st + 1, true, false);
+          }
+        }
+      };
+      dfs(0, false, false);
+    }
+    return res;
+  }
+
+  // Elenco dei voicing: prima le posizioni classiche, poi le forme con barre e la ricerca, dal più comodo.
+  function guitarVoicings(chord) {
+    var info = chordInfo(chord), seen = {}, curated = [], others = [];
+    function take(frets, isCurated, bonus, into) {
+      var key = frets.join(',');
+      if (seen[key]) return;
+      var ev = evalVoicing(frets, info);
+      if (!ev) return;
+      seen[key] = true;
+      ev.curated = isCurated; ev.score -= bonus;
+      into.push(ev);
+    }
+    rawCurated(chord).forEach(function (f) { take(f, true, 0, curated); });
+    rawTemplates(chord).forEach(function (f) { take(f, false, 1.5, others); });
+    searchVoicings(info).forEach(function (ev) {
+      var key = ev.frets.join(',');
+      if (seen[key]) return;
+      seen[key] = true; others.push(ev);
+    });
+    others.sort(function (a, b) { return a.score - b.score; });
+    return curated.concat(others.slice(0, 24));
+  }
+
+  // ---- pianoforte ----
+  function inversionForBass(chord) {
+    if (!chord.bass) return 0;
+    var bpc = notePc(chord.bass);
+    var tones = chordTones(chord).slice().sort(function (a, b) { return a.semis - b.semis; });
+    for (var i = 0; i < tones.length && i < 4; i++) if (tones[i].degree !== 9 && tones[i].pc === bpc) return i;
+    return 0;
+  }
+  // Fondamentale a partire dal Do centrale meno un'ottava; ogni rivolto sposta le note più basse un'ottava sopra.
+  function pianoNotes(chord, inv) {
+    var tones = chordTones(chord).slice().sort(function (a, b) { return a.semis - b.semis; });
+    var core = tones.filter(function (t) { return t.degree !== 9; }).length;
+    var maxInv = Math.min(core, 4) - 1;
+    inv = Math.max(0, Math.min(inv, maxInv));
+    var base = 48 + notePc(chord.root);
+    var notes = tones.map(function (t, i) {
+      return { midi: base + t.semis + ((t.degree !== 9 && i < inv) ? 12 : 0), pc: t.pc, role: t.role, note: t.note, degree: t.degree };
+    });
+    if (chord.bass) {
+      var bpc = notePc(chord.bass);
+      if (!tones.some(function (t) { return t.pc === bpc; })) {
+        var lo = Math.min.apply(null, notes.map(function (n) { return n.midi; }));
+        var m = lo - 1;
+        while (mod(m, 12) !== bpc) m--;
+        notes.push({ midi: m, pc: bpc, role: 'bass', note: chord.bass, degree: 0 });
+      }
+    }
+    notes.sort(function (a, b) { return a.midi - b.midi; });
+    return { notes: notes, inv: inv, maxInv: maxInv };
+  }
+  // Note a partire da tasti scelti a mano: il ruolo viene dall'accordo riconosciuto.
+  function pianoNotesFromMidi(chord, midis) {
+    var tones = chordTones(chord), names = nameMap(chord);
+    return midis.slice().sort(function (a, b) { return a - b; }).map(function (m) {
+      var pc = mod(m, 12);
+      var t = tones.filter(function (x) { return x.pc === pc; })[0];
+      return { midi: m, pc: pc, role: t ? t.role : 'bass', note: names[pc], degree: t ? t.degree : 0 };
+    });
+  }
+  function pianoRange(notes, pref) {
+    var lo = Math.min.apply(null, notes.map(function (n) { return n.midi; }));
+    var hi = Math.max.apply(null, notes.map(function (n) { return n.midi; }));
+    var startC = Math.floor(lo / 12) * 12;
+    var octaves = Math.max(pref === '3' ? 3 : 2, Math.ceil((hi - startC + 1) / 12));
+    return { startC: startC, octaves: octaves };
+  }
+
+  // ---- accordi in armonia (tonalità) ----
+  // steps: semitoni dalla tonica; types: qualità della triade su ogni grado; roman: numeri romani.
+  var SCALES = {
+    maggiore: { steps: [0, 2, 4, 5, 7, 9, 11], types: ['maj', 'm', 'm', 'maj', 'maj', 'm', 'dim'], roman: ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'], main: [0, 3, 4], rel: 5 },
+    minore:   { steps: [0, 2, 3, 5, 7, 8, 10], types: ['m', 'dim', 'maj', 'm', 'm', 'maj', 'maj'], roman: ['i', 'ii°', 'III', 'iv', 'v', 'VI', 'VII'], main: [0, 3], rel: 2 }
+  };
+  // Tonalità suggerita da un accordo: minore se ha la terza minore, altrimenti maggiore.
+  function chordMode(chord) {
+    var third = TYPE_BY_ID[chord.type].tones.filter(function (d) { return d[0] === 3; })[0];
+    return third && third[1] === 3 ? 'minore' : 'maggiore';
+  }
+  // La nota del grado i (0 = tonica): il grado decide la lettera, i semitoni l'alterazione.
+  function scaleNote(root, step, i) {
+    var l = (root.l + i) % 7, pc = mod(notePc(root) + step, 12);
+    return { l: l, a: mod(pc - LETTER_PC[l] + 6, 12) - 6 };
+  }
+  // Accordi della tonalità di root/mode: 7 triadi + (V7), in minore anche V e V7 dalla scala armonica.
+  // tag: 'top' (più usati), 'relativa' o ''.
+  function keyChords(root, mode) {
+    var sc = SCALES[mode], out = [];
+    function add(i, type, roman, tag) {
+      out.push({ chord: { root: scaleNote(root, sc.steps[i], i), type: type, bass: null }, roman: roman, tag: tag });
+    }
+    sc.steps.forEach(function (st, i) {
+      add(i, sc.types[i], sc.roman[i], sc.main.indexOf(i) >= 0 ? 'top' : (i === sc.rel ? 'relativa' : ''));
+    });
+    if (mode === 'minore') add(4, 'maj', 'V', 'top');
+    add(4, '7', 'V7', '');
+    return out;
+  }
+
+  return {
+    LETTERS: LETTERS, IT: IT, OPEN_MIDI: OPEN_MIDI, TYPES: TYPES, ROOT_NAMES: ROOT_NAMES,
+    chordMode: chordMode, keyChords: keyChords,
+    notePc: notePc, noteName: noteName, pcName: pcName,
+    parseNote: parseNote, parseChord: parseChord, parseProgression: parseProgression,
+    chordTones: chordTones, nameMap: nameMap, chordName: chordName, chordSig: chordSig, identify: identify,
+    fingering: fingering, rawCurated: rawCurated, rawTemplates: rawTemplates, guitarVoicings: guitarVoicings,
+    inversionForBass: inversionForBass, pianoNotes: pianoNotes, pianoNotesFromMidi: pianoNotesFromMidi, pianoRange: pianoRange
+  };
+})();
+</script>
+
+<!-- ======================= DISEGNO (SVG puro, nessun DOM) ======================= -->
+<script id="disegno">
+var Disegno = (function () {
+  'use strict';
+  var WPC = [0, 2, 4, 5, 7, 9, 11];
+  var BLACK_AFTER = { 0: 1, 1: 1, 3: 1, 4: 1, 5: 1 };
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function r2(n) { return Math.round(n * 100) / 100; }
+
+  // Legge lo stile. get(nome) restituisce il valore della variabile CSS (stringa).
+  function readStyle(get) {
+    function n(k) { return parseFloat(get(k)); }
+    function s(k) { return get(k); }
+    return {
+      font: s('--font'), paper: s('--paper'), ink: s('--ink'), muted: s('--muted'), titleColor: s('--title-color'),
+      titleSize: n('--title-size'), labelSize: n('--label-size'), cardW: n('--card-w'), cardPad: n('--card-pad'),
+      cardRadius: n('--card-radius'), cardBorder: s('--card-border'), sheetGap: n('--sheet-gap'),
+      gGap: n('--g-gap'), gFret: n('--g-fret'), lineW: n('--line-w'), nutW: n('--nut-w'),
+      stringColor: s('--string-color'), fretColor: s('--fret-color'), markColor: s('--mark-color'),
+      dotR: n('--dot-r'), dotColor: s('--dot-color'), dotText: s('--dot-text'), barreColor: s('--barre-color'),
+      finger: [s('--finger-1'), s('--finger-2'), s('--finger-3'), s('--finger-4')],
+      keyWhite: s('--key-white'), keyBlack: s('--key-black'), keyLine: s('--key-line'), keyLineW: n('--key-line-w'),
+      keyRatio: n('--key-ratio'), keyWMax: n('--key-w-max'), keyOn: s('--key-on'), keyOnText: s('--key-on-text'),
+      keyBlackText: s('--key-black-text'), roleText: s('--role-text'),
+      role: { root: s('--role-root'), third: s('--role-third'), fifth: s('--role-fifth'), seventh: s('--role-seventh'), ext: s('--role-ext'), bass: s('--role-bass') }
+    };
+  }
+
+  function text(x, y, str, size, fill, opt) {
+    opt = opt || {};
+    return '<text x="' + r2(x) + '" y="' + r2(y) + '" font-size="' + r2(size) + '" fill="' + esc(fill) + '" text-anchor="' + (opt.anchor || 'middle') + '"' +
+      (opt.weight ? ' font-weight="' + opt.weight + '"' : '') + '>' + esc(str) + '</text>';
+  }
+  function line(x1, y1, x2, y2, stroke, w, cap) {
+    return '<line x1="' + r2(x1) + '" y1="' + r2(y1) + '" x2="' + r2(x2) + '" y2="' + r2(y2) + '" stroke="' + esc(stroke) + '" stroke-width="' + r2(w) + '"' + (cap ? ' stroke-linecap="' + cap + '"' : '') + '/>';
+  }
+
+  // ---- chitarra ----
+  // v: {frets[6], fingers[6], barre, base, pcs[6], nameOfPc}; c: {S, left, names, showFingers, fingerCols, hit, base}
+  function guitarGroup(v, c) {
+    var S = c.S, gap = S.gGap, fh = S.gFret, r = S.dotR, rows = 5;
+    var side = Math.max(S.labelSize * 2.6, r + 6);
+    var top = r * 2 + 6;
+    var gridW = gap * 5, gridH = fh * rows;
+    var namesH = c.names === 'nessuno' ? 0 : S.labelSize * 1.9;
+    var w = gridW + side * 2, h = top + gridH + namesH + 6;
+    var base = c.base || v.base;
+    var xs = [], s, j, o = [];
+    for (s = 0; s < 6; s++) xs.push(side + (c.left ? 5 - s : s) * gap);
+    var x0 = side, x1 = side + gridW;
+    // tasti
+    for (j = 0; j <= rows; j++) {
+      var y = top + j * fh;
+      if (j === 0 && base === 1) o.push(line(x0 - S.lineW / 2, y, x1 + S.lineW / 2, y, S.ink, S.nutW, 'butt'));
+      else o.push(line(x0, y, x1, y, S.fretColor, S.lineW));
+    }
+    // corde
+    for (s = 0; s < 6; s++) o.push(line(xs[s], top, xs[s], top + gridH, S.stringColor, S.lineW));
+    // X e O
+    var m = r * 0.55, my = top - m - 5 - (base === 1 ? S.nutW / 2 : 0);
+    for (s = 0; s < 6; s++) {
+      if (v.frets[s] === -1) {
+        o.push(line(xs[s] - m, my - m, xs[s] + m, my + m, S.markColor, S.lineW * 1.2, 'round'));
+        o.push(line(xs[s] - m, my + m, xs[s] + m, my - m, S.markColor, S.lineW * 1.2, 'round'));
+      } else if (v.frets[s] === 0) {
+        o.push('<circle cx="' + r2(xs[s]) + '" cy="' + r2(my) + '" r="' + r2(m) + '" fill="none" stroke="' + esc(S.markColor) + '" stroke-width="' + r2(S.lineW * 1.2) + '"/>');
+      }
+    }
+    // barre
+    var b = v.barre;
+    if (b && b.fret >= base && b.fret < base + rows) {
+      var by = top + (b.fret - base + 0.5) * fh;
+      var bx1 = Math.min(xs[b.from], xs[b.to]), bx2 = Math.max(xs[b.from], xs[b.to]);
+      o.push('<rect x="' + r2(bx1 - r) + '" y="' + r2(by - r) + '" width="' + r2(bx2 - bx1 + 2 * r) + '" height="' + r2(2 * r) + '" rx="' + r2(r) + '" fill="' + esc(c.fingerCols ? S.finger[0] : S.barreColor) + '"/>');
+    }
+    // pallini
+    for (s = 0; s < 6; s++) {
+      var f = v.frets[s];
+      if (f <= 0 || f < base || f >= base + rows) continue;
+      if (b && f === b.fret && s > b.from && s < b.to) continue;
+      var fg = v.fingers[s];
+      var cy = top + (f - base + 0.5) * fh;
+      var fill = (c.fingerCols && fg > 0) ? S.finger[fg - 1] : S.dotColor;
+      o.push('<circle cx="' + r2(xs[s]) + '" cy="' + r2(cy) + '" r="' + r2(r) + '" fill="' + esc(fill) + '"/>');
+      if (c.showFingers && fg > 0) o.push(text(xs[s], cy + r * 0.42, fg, r * 1.2, S.dotText, { weight: 700 }));
+    }
+    // numero del tasto
+    if (base > 1) {
+      o.push(text(c.left ? x1 + 8 : x0 - 8, top + fh * 0.5 + S.labelSize * 0.35, base + 'ª', S.labelSize, S.ink, { anchor: c.left ? 'start' : 'end', weight: 700 }));
+    }
+    // nomi delle note sotto le corde
+    if (c.names !== 'nessuno') {
+      for (s = 0; s < 6; s++) if (v.pcs[s] !== null && v.pcs[s] !== undefined) o.push(text(xs[s], top + gridH + S.labelSize * 1.45, v.nameOfPc(v.pcs[s]), S.labelSize * 0.9, S.ink, { weight: 600 }));
+    }
+    // zone cliccabili (solo nel modo manuale)
+    if (c.hit) {
+      for (s = 0; s < 6; s++) {
+        o.push('<rect class="hit" data-hit="g" data-s="' + s + '" data-f="open" x="' + r2(xs[s] - gap / 2) + '" y="0" width="' + r2(gap) + '" height="' + r2(top) + '"/>');
+        for (j = 0; j < rows; j++) o.push('<rect class="hit" data-hit="g" data-s="' + s + '" data-f="' + (base + j) + '" x="' + r2(xs[s] - gap / 2) + '" y="' + r2(top + j * fh) + '" width="' + r2(gap) + '" height="' + r2(fh) + '"/>');
+      }
+    }
+    return { svg: o.join(''), w: w, h: h };
+  }
+
+  // ---- pianoforte ----
+  // m: {notes[{midi,role,note}], startC, octaves}; c: {S, availW, names, roles, nameOfMidi, hit}
+  function pianoGroup(m, c) {
+    var S = c.S, nWhite = 7 * m.octaves + 1;
+    var kw = Math.min(c.availW / nWhite, S.keyWMax), kh = kw * S.keyRatio;
+    var bw = kw * 0.62, bh = kh * 0.62;
+    var w = kw * nWhite, h = kh;
+    var lit = {}, o = [], i;
+    m.notes.forEach(function (n) { lit[n.midi] = n; });
+    function colorOf(n) { return c.roles ? S.role[n.role] : S.keyOn; }
+    function labelOf(midi, n) {
+      if (c.names === 'nessuno') return '';
+      if (n) return c.nameOfMidi(midi, n);
+      return c.names === 'tutti' ? c.nameOfMidi(midi, null) : '';
+    }
+    var fs = Math.min(S.labelSize, kw * 0.52);
+    for (i = 0; i < nWhite; i++) {
+      var midi = m.startC + Math.floor(i / 7) * 12 + WPC[i % 7], n = lit[midi];
+      o.push('<rect x="' + r2(i * kw) + '" y="0" width="' + r2(kw) + '" height="' + r2(kh) + '" fill="' + esc(n ? colorOf(n) : S.keyWhite) + '" stroke="' + esc(S.keyLine) + '" stroke-width="' + r2(S.keyLineW) + '"/>');
+      var lb = labelOf(midi, n);
+      if (lb) o.push(text(i * kw + kw / 2, kh - 6, lb, fs, n ? (c.roles ? S.roleText : S.keyOnText) : S.ink, { weight: 700 }));
+    }
+    for (i = 0; i < nWhite - 1; i++) {
+      if (!BLACK_AFTER[i % 7]) continue;
+      var bm = m.startC + Math.floor(i / 7) * 12 + WPC[i % 7] + 1, bn = lit[bm];
+      var bx = (i + 1) * kw - bw / 2;
+      o.push('<rect x="' + r2(bx) + '" y="0" width="' + r2(bw) + '" height="' + r2(bh) + '" fill="' + esc(bn ? colorOf(bn) : S.keyBlack) + '" stroke="' + esc(S.keyLine) + '" stroke-width="' + r2(S.keyLineW) + '"/>');
+      var bl = labelOf(bm, bn);
+      if (bl) o.push(text(bx + bw / 2, bh - 5, bl, Math.min(fs, bw * 0.62), bn ? (c.roles ? S.roleText : S.keyOnText) : S.keyBlackText, { weight: 700 }));
+    }
+    if (c.hit) {
+      for (i = 0; i < nWhite; i++) o.push('<rect class="hit" data-hit="p" data-m="' + (m.startC + Math.floor(i / 7) * 12 + WPC[i % 7]) + '" x="' + r2(i * kw) + '" y="' + r2(bh) + '" width="' + r2(kw) + '" height="' + r2(kh - bh) + '"/>' +
+        '<rect class="hit" data-hit="p" data-m="' + (m.startC + Math.floor(i / 7) * 12 + WPC[i % 7]) + '" x="' + r2(i * kw) + '" y="0" width="' + r2(kw) + '" height="' + r2(bh) + '"/>');
+      for (i = 0; i < nWhite - 1; i++) if (BLACK_AFTER[i % 7]) o.push('<rect class="hit" data-hit="p" data-m="' + (m.startC + Math.floor(i / 7) * 12 + WPC[i % 7] + 1) + '" x="' + r2((i + 1) * kw - bw / 2) + '" y="0" width="' + r2(bw) + '" height="' + r2(bh) + '"/>');
+    }
+    return { svg: o.join(''), w: w, h: h };
+  }
+
+  // ---- pentagramma ----
+  // m: {notes[{l, a, degree}], bass: {l, a} | null}: lettera (0 = do .. 6 = si), alterazione, grado.
+  // Le lettere decidono la riga o lo spazio (la grafia viene da Teoria e non si cambia).
+  // c: {S, availW}
+  var STAFF_FONT = '"Segoe UI Symbol", "Apple Symbols", "Noto Music", "Noto Sans Symbols 2", serif';
+  var D_BOTTOM = 30;               // posizione diatonica del mi4, riga più bassa del pentagramma in chiave di violino
+  function accidentalPath(a, x, y, u, color) {
+    var o = [], sw = r2(u * 0.3), k;
+    function flat(fx) {
+      return '<path d="M' + r2(fx) + ' ' + r2(y - 2.2 * u) + ' L' + r2(fx) + ' ' + r2(y + 0.8 * u) +
+        ' C' + r2(fx + 0.6 * u) + ' ' + r2(y + 0.5 * u) + ' ' + r2(fx + 1.1 * u) + ' ' + r2(y + 0.0 * u) + ' ' + r2(fx + 0.7 * u) + ' ' + r2(y - 0.5 * u) +
+        ' C' + r2(fx + 0.5 * u) + ' ' + r2(y - 0.75 * u) + ' ' + r2(fx + 0.15 * u) + ' ' + r2(y - 0.6 * u) + ' ' + r2(fx) + ' ' + r2(y - 0.3 * u) +
+        '" fill="none" stroke="' + esc(color) + '" stroke-width="' + sw + '" stroke-linejoin="round"/>';
+    }
+    if (a === 1) {
+      o.push('<path d="M' + r2(x - 0.3 * u) + ' ' + r2(y - 1.7 * u) + ' V' + r2(y + 1.9 * u) + ' M' + r2(x + 0.3 * u) + ' ' + r2(y - 1.9 * u) + ' V' + r2(y + 1.7 * u) +
+        '" stroke="' + esc(color) + '" stroke-width="' + r2(u * 0.14) + '" fill="none"/>');
+      o.push('<path d="M' + r2(x - 0.7 * u) + ' ' + r2(y - 0.1 * u) + ' L' + r2(x + 0.7 * u) + ' ' + r2(y - 0.55 * u) + ' M' + r2(x - 0.7 * u) + ' ' + r2(y + 0.65 * u) + ' L' + r2(x + 0.7 * u) + ' ' + r2(y + 0.2 * u) +
+        '" stroke="' + esc(color) + '" stroke-width="' + r2(u * 0.34) + '" fill="none"/>');
+    } else if (a === 2) {
+      k = u * 0.5;
+      o.push('<path d="M' + r2(x - k) + ' ' + r2(y - k) + ' L' + r2(x + k) + ' ' + r2(y + k) + ' M' + r2(x - k) + ' ' + r2(y + k) + ' L' + r2(x + k) + ' ' + r2(y - k) +
+        '" stroke="' + esc(color) + '" stroke-width="' + r2(u * 0.42) + '" fill="none"/>');
+    } else if (a === -1) {
+      o.push(flat(x - 0.4 * u));
+    } else if (a === -2) {
+      o.push(flat(x - 1.05 * u)); o.push(flat(x + 0.05 * u));
+    }
+    return o.join('');
+  }
+  function staffGroup(m, c) {
+    var S = c.S, u = S.labelSize, step = u / 2, ink = S.ink, o = [], j;
+    var staffW = Math.min(c.availW, u * 20);
+    var clefW = u * 3.4;
+    // posizioni diatoniche: do4 = 28. Fondamentale nell'ottava del do centrale, poi una terza sopra l'altra.
+    var rootDia = 28 + m.notes[0].l;   // le note sono in ordine di grado
+    var items = m.notes.map(function (n) { return { l: n.l, a: n.a, dia: rootDia + n.degree - 1 }; });
+    if (m.bass) {
+      var bd = 28 + m.bass.l;
+      if (bd >= rootDia) bd -= 7;
+      items.push({ l: m.bass.l, a: m.bass.a, dia: bd });
+    }
+    var top = Math.max.apply(null, items.map(function (n) { return n.dia; }));
+    var shift = top > 42 ? 7 : 0;      // oltre il do6 si scende di un'ottava
+    items.forEach(function (n) { n.dia -= shift; });
+    items.sort(function (p, q) { return p.dia - q.dia; });
+    var minD = items[0].dia, maxD = items[items.length - 1].dia;
+    var hiD = Math.max(maxD + 5, 44), loD = Math.min(minD - 5, 26);
+    var h = (hiD - loD) * step;
+    function Y(d) { return (hiD - d) * step; }
+    // note a distanza di seconda: la più acuta si sposta a destra
+    items.forEach(function (n, k) { n.side = (k > 0 && n.dia - items[k - 1].dia === 1 && !items[k - 1].side) ? 1 : 0; });
+    // alterazioni in colonne, dall'alto: si va a sinistra finché non si toccano
+    var cols = [], nCols = 0;
+    items.slice().reverse().forEach(function (n) {
+      if (!n.a) return;
+      var col = 0;
+      for (;;) {
+        var clash = (cols[col] || []).some(function (q) { return Math.abs(q.dia - n.dia) < 6; });
+        if (!clash) break;
+        col++;
+      }
+      (cols[col] = cols[col] || []).push(n); n.col = col;
+      if (col + 1 > nCols) nCols = col + 1;
+    });
+    function accW(a) { return u * (a === -2 ? 2.4 : (a === 1 ? 1.7 : (a === 2 ? 1.3 : 1.4))); }
+    var colW = [], accTotal = 0, colX = [];
+    items.forEach(function (n) { if (n.a) colW[n.col] = Math.max(colW[n.col] || 0, accW(n.a)); });
+    var accGap = u * 0.15, headRx = u * 0.72, headW = headRx * 2;
+    var hasSide = items.some(function (n) { return n.side; });
+    for (var ci = nCols - 1; ci >= 0; ci--) { colX[ci] = accTotal + colW[ci] / 2; accTotal += colW[ci] + accGap; }
+    var blockW = accTotal + headW * (hasSide ? 2 : 1);
+    var bx = clefW + Math.max(0, (staffW - clefW - blockW) / 2);
+    var noteX = bx + accTotal + headRx;
+    var lw = Math.max(1, u * 0.11);
+    // righe del pentagramma
+    for (j = 0; j < 5; j++) o.push(line(0, Y(D_BOTTOM + 2 * j), staffW, Y(D_BOTTOM + 2 * j), ink, lw));
+    o.push(line(0, Y(D_BOTTOM + 8), 0, Y(D_BOTTOM), ink, lw * 1.4));
+    o.push(line(staffW, Y(D_BOTTOM + 8), staffW, Y(D_BOTTOM), ink, lw * 1.4));
+    // chiave di violino: la riga del sol (secondo rigo dal basso) è la sua linea di base
+    o.push('<text x="' + r2(u * 0.35) + '" y="' + r2(Y(D_BOTTOM + 2) + u * 0.62) + '" font-size="' + r2(u * 5.3) + '" font-family="' + esc(STAFF_FONT) + '" fill="' + esc(ink) + '">&#119070;</text>');
+    // tagli addizionali, uniti per altezza
+    var ledMap = {};
+    items.forEach(function (n) {
+      var cx = noteX + (n.side ? headW * 0.98 : 0), x1 = cx - headRx - u * 0.45, x2 = cx + headRx + u * 0.45, d;
+      var lo = n.dia <= 28 ? (n.dia % 2 === 0 ? n.dia : n.dia + 1) : null, hi = n.dia >= 40 ? (n.dia % 2 === 0 ? n.dia : n.dia - 1) : null;
+      function add(dd) {
+        var e = ledMap[dd];
+        if (!e) ledMap[dd] = { x1: x1, x2: x2 }; else { e.x1 = Math.min(e.x1, x1); e.x2 = Math.max(e.x2, x2); }
+      }
+      if (lo !== null) for (d = 28; d >= lo; d -= 2) add(d);
+      if (hi !== null) for (d = 40; d <= hi; d += 2) add(d);
+    });
+    Object.keys(ledMap).forEach(function (d) { o.push(line(ledMap[d].x1, Y(+d), ledMap[d].x2, Y(+d), ink, lw)); });
+    // teste (semibrevi, con il foro inclinato) e alterazioni
+    var deg = 35, ang = deg * Math.PI / 180, ry = u * 0.5, ix = u * 0.3, iy = u * 0.42;
+    items.forEach(function (n) {
+      var cx = noteX + (n.side ? headW * 0.98 : 0), cy = Y(n.dia), px = ix * Math.cos(ang), py = ix * Math.sin(ang);
+      o.push('<path fill-rule="evenodd" fill="' + esc(ink) + '" d="M' + r2(cx - headRx) + ' ' + r2(cy) + ' A' + r2(headRx) + ' ' + r2(ry) + ' 0 1 1 ' + r2(cx + headRx) + ' ' + r2(cy) +
+        ' A' + r2(headRx) + ' ' + r2(ry) + ' 0 1 1 ' + r2(cx - headRx) + ' ' + r2(cy) +
+        ' M' + r2(cx + px) + ' ' + r2(cy + py) + ' A' + r2(ix) + ' ' + r2(iy) + ' ' + deg + ' 1 0 ' + r2(cx - px) + ' ' + r2(cy - py) +
+        ' A' + r2(ix) + ' ' + r2(iy) + ' ' + deg + ' 1 0 ' + r2(cx + px) + ' ' + r2(cy + py) + 'Z"/>');
+      if (n.a) o.push(accidentalPath(n.a, bx + colX[n.col], cy, u, ink));
+    });
+    return { svg: o.join(''), w: staffW, h: h };
+  }
+
+  // ---- scheda di un accordo ----
+  // view: {title, notes, guitar, piano, staff, pianoCaption}; c: {S, show: {chitarra, piano, pentagramma}, ...}
+  function cardGroup(view, c) {
+    var S = c.S, W = S.cardW, pad = S.cardPad, y = pad + S.titleSize * 0.85, o = [];
+    o.push(text(W / 2, y, view.title, S.titleSize, S.titleColor, { weight: 700 }));
+    y += S.labelSize * 1.6;
+    o.push(text(W / 2, y, view.notes, S.labelSize, S.muted));
+    y += pad * 0.6;
+    if (c.show.chitarra) {
+      y += S.labelSize * 1.1;
+      o.push(text(W / 2, y, 'Chitarra' + (view.guitarCaption ? ' · ' + view.guitarCaption : ''), S.labelSize, S.muted, { weight: 600 }));
+      y += S.labelSize * 0.4;
+      if (view.guitar) {
+        var g = guitarGroup(view.guitar, c);
+        o.push('<g transform="translate(' + r2((W - g.w) / 2) + ' ' + r2(y) + ')">' + g.svg + '</g>');
+        y += g.h;
+      } else {
+        y += S.labelSize * 1.5;
+        o.push(text(W / 2, y, 'Nessun voicing trovato', S.labelSize, S.muted));
+        y += S.labelSize * 1.2;
+      }
+      y += pad * 0.5;
+    }
+    if (c.show.piano) {
+      y += S.labelSize * 1.1;
+      o.push(text(W / 2, y, 'Pianoforte' + (view.pianoCaption ? ' · ' + view.pianoCaption : ''), S.labelSize, S.muted, { weight: 600 }));
+      y += S.labelSize * 0.6;
+      var p = pianoGroup(view.piano, { S: S, availW: W - 2 * pad, names: c.names, roles: c.roles, nameOfMidi: view.nameOfMidi });
+      o.push('<g transform="translate(' + r2((W - p.w) / 2) + ' ' + r2(y) + ')">' + p.svg + '</g>');
+      y += p.h;
+      y += pad * 0.5;
+    }
+    if (c.show.pentagramma) {
+      y += S.labelSize * 1.1;
+      o.push(text(W / 2, y, 'Pentagramma', S.labelSize, S.muted, { weight: 600 }));
+      y += S.labelSize * 0.3;
+      var st = staffGroup(view.staff, { S: S, availW: W - 2 * pad });
+      o.push('<g transform="translate(' + r2((W - st.w) / 2) + ' ' + r2(y) + ')">' + st.svg + '</g>');
+      y += st.h;
+    }
+    y += pad;
+    var border = '<rect x="0.75" y="0.75" width="' + r2(W - 1.5) + '" height="' + r2(y - 1.5) + '" rx="' + S.cardRadius + '" fill="none" stroke="' + esc(S.cardBorder) + '" stroke-width="1.5"/>';
+    return { svg: border + o.join(''), w: W, h: y };
+  }
+
+  function legendGroup(S, W) {
+    var items = [['root', 'Fondamentale'], ['third', 'Terza'], ['fifth', 'Quinta'], ['seventh', '6ª e 7ª'], ['ext', 'Nona']];
+    var step = Math.min(W / items.length, S.labelSize * 13), o = [], k = S.labelSize;
+    var total = step * items.length, x0 = (W - total) / 2;
+    items.forEach(function (it, i) {
+      var x = x0 + i * step;
+      o.push('<rect x="' + r2(x) + '" y="0" width="' + r2(k) + '" height="' + r2(k) + '" rx="2" fill="' + esc(S.role[it[0]]) + '"/>');
+      o.push(text(x + k + 5, k * 0.88, it[1], k, S.ink, { anchor: 'start' }));
+    });
+    return { svg: o.join(''), w: W, h: k + 4 };
+  }
+
+  function wrapSvg(inner, w, h, S, bg) {
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="' + r2(w) + '" height="' + r2(h) + '" viewBox="0 0 ' + r2(w) + ' ' + r2(h) + '" font-family="' + esc(S.font) + '">' +
+      (bg ? '<rect width="' + r2(w) + '" height="' + r2(h) + '" fill="' + esc(S.paper) + '"/>' : '') + inner + '</svg>';
+  }
+
+  // Foglio intero: titolo, sottotitolo, schede in griglia, legenda dei colori
+  function sheetSvg(views, head, c) {
+    var S = c.S, cols = c.cols, gap = S.sheetGap, margin = 22, cw = S.cardW;
+    var W = margin * 2 + cols * cw + (cols - 1) * gap;
+    var y = margin, o = [];
+    if (head.title) { y += S.titleSize * 1.1; o.push(text(margin, y, head.title, S.titleSize * 1.25, S.titleColor, { anchor: 'start', weight: 700 })); y += S.labelSize * 0.6; }
+    if (head.subtitle) { y += S.labelSize * 1.5; o.push(text(margin, y, head.subtitle, S.labelSize * 1.3, S.muted, { anchor: 'start' })); }
+    if (head.title || head.subtitle) y += S.labelSize * 1.2;
+    var groups = views.map(function (v) { return cardGroup(v, c); });
+    for (var i = 0; i < groups.length; i += cols) {
+      var row = groups.slice(i, i + cols), rh = 0;
+      row.forEach(function (g, k) {
+        o.push('<g transform="translate(' + r2(margin + k * (cw + gap)) + ' ' + r2(y) + ')">' + g.svg + '</g>');
+        if (g.h > rh) rh = g.h;
+      });
+      y += rh + gap;
+    }
+    if (c.roles && c.show.piano) {
+      var lg = legendGroup(S, W - 2 * margin);
+      o.push('<g transform="translate(' + margin + ' ' + r2(y) + ')">' + lg.svg + '</g>');
+      y += lg.h + gap;
+    }
+    y += margin - gap;
+    return wrapSvg(o.join(''), W, y, S, c.bg);
+  }
+
+  // ---- Tavola colorata per la classe ----
+  var POSTER_COLORS = ['#ffd23f', '#3ec9f0', '#a66bd9', '#6fcf3f', '#ff6fa8', '#ff9a2e', '#4a86f0', '#25c4a8'];
+  var POSTER_FONT = '"Comic Sans MS", "Segoe Print", "Chalkboard SE", "Comic Neue", cursive';
+  var POSTER_PAPER = '#fff8e7';
+  var POSTER_DARK = '#1b1b2b';
+  var FINGER_NAMES = ['indice', 'medio', 'anulare', 'mignolo'];
+
+  function seeded(seed) {
+    var s = (seed * 2654435761 + 12345) >>> 0;
+    return function () { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+  }
+  // Macchia di colore irregolare ma sempre uguale per lo stesso numero di scheda
+  function blobGroup(W, H, seed, fill) {
+    var rnd = seeded(seed + 1), n = 18, pts = [], i, cx = W / 2, cy = H / 2, rx = W / 2 - 3, ry = H / 2 - 3;
+    for (i = 0; i < n; i++) {
+      var a = Math.PI * 2 * i / n, c = Math.cos(a), s = Math.sin(a);
+      var k = 0.86 + rnd() * 0.14;
+      pts.push([cx + rx * k * (c < 0 ? -1 : 1) * Math.pow(Math.abs(c), 0.42), cy + ry * k * (s < 0 ? -1 : 1) * Math.pow(Math.abs(s), 0.42)]);
+    }
+    function mid(p, q) { return [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2]; }
+    var m0 = mid(pts[n - 1], pts[0]), d = 'M' + r2(m0[0]) + ' ' + r2(m0[1]);
+    for (i = 0; i < n; i++) {
+      var m = mid(pts[i], pts[(i + 1) % n]);
+      d += ' Q' + r2(pts[i][0]) + ' ' + r2(pts[i][1]) + ' ' + r2(m[0]) + ' ' + r2(m[1]);
+    }
+    var o = ['<path d="' + d + 'Z" fill="' + fill + '"/>'];
+    for (i = 0; i < 9; i++) {
+      var side = rnd(), px, py;
+      if (side < 0.25) { px = rnd() * W; py = 2 + rnd() * 10; }
+      else if (side < 0.5) { px = rnd() * W; py = H - 2 - rnd() * 10; }
+      else if (side < 0.75) { px = 2 + rnd() * 10; py = rnd() * H; }
+      else { px = W - 2 - rnd() * 10; py = rnd() * H; }
+      o.push('<circle cx="' + r2(px) + '" cy="' + r2(py) + '" r="' + r2(1.5 + rnd() * 3.5) + '" fill="' + fill + '"/>');
+    }
+    return o.join('');
+  }
+  // Lucchetto disegnato: centro (cx, cy), larghezza sz
+  function padlockGroup(cx, cy, sz, body) {
+    var top = cy - sz * 0.4, sh = sz * 0.3;
+    return '<path d="M' + r2(cx - sh) + ' ' + r2(top + sz * 0.1) + ' L' + r2(cx - sh) + ' ' + r2(top - sh * 0.3) + ' A' + r2(sh) + ' ' + r2(sh) + ' 0 0 1 ' + r2(cx + sh) + ' ' + r2(top - sh * 0.3) +
+      ' L' + r2(cx + sh) + ' ' + r2(top + sz * 0.1) + '" fill="none" stroke="#555a66" stroke-width="' + r2(sz * 0.16) + '" stroke-linecap="round"/>' +
+      '<rect x="' + r2(cx - sz / 2) + '" y="' + r2(top) + '" width="' + r2(sz) + '" height="' + r2(sz * 0.8) + '" rx="' + r2(sz * 0.14) + '" fill="' + (body || '#2b2f3a') + '"/>' +
+      '<circle cx="' + r2(cx) + '" cy="' + r2(top + sz * 0.3) + '" r="' + r2(sz * 0.09) + '" fill="#f1ede0"/>' +
+      '<rect x="' + r2(cx - sz * 0.04) + '" y="' + r2(top + sz * 0.3) + '" width="' + r2(sz * 0.08) + '" height="' + r2(sz * 0.26) + '" rx="' + r2(sz * 0.03) + '" fill="#f1ede0"/>';
+  }
+  // Scheda della tavola. view.poster = {root, type, locked}; c.index = posizione della scheda.
+  function posterCardGroup(view, c) {
+    var S = c.S, W = S.cardW, pad = 14, P = view.poster, o = [];
+    var color = POSTER_COLORS[c.index % POSTER_COLORS.length];
+    // diagrammi accesi, impilati nel pannello bianco nell'ordine chitarra, tastiera, pentagramma
+    var sh = c.show, many = (sh.chitarra ? 1 : 0) + (sh.piano ? 1 : 0) + (sh.pentagramma ? 1 : 0);
+    var items = [], gap = 12, innerW = W - 2 * pad - 8 - 24;
+    if (sh.chitarra) {
+      if (view.guitar) {
+        var gd = guitarGroup(view.guitar, { S: S, left: c.left, names: c.names, showFingers: c.showFingers, fingerCols: true }), gs = many === 1 ? 1.3 : (many === 2 ? 1.1 : 1);
+        items.push({ svg: gd.svg, w: gd.w * gs, h: gd.h * gs, scale: gs });
+      } else items.push({ svg: text(innerW / 2, 24, 'Nessun voicing trovato', 14, S.muted), w: innerW, h: 40, scale: 1 });
+    }
+    if (sh.piano) {
+      var pd = pianoGroup(view.piano, { S: S, availW: innerW, names: c.names, roles: c.roles, nameOfMidi: view.nameOfMidi });
+      items.push({ svg: pd.svg, w: pd.w, h: pd.h, scale: 1 });
+    }
+    if (sh.pentagramma) {
+      var sd = staffGroup(view.staff, { S: S, availW: innerW / 1.1 });
+      items.push({ svg: sd.svg, w: sd.w * 1.1, h: sd.h * 1.1, scale: 1.1 });
+    }
+    var contentH = items.reduce(function (a, it) { return a + it.h; }, 0) + gap * (items.length - 1);
+    var panelY = pad + 92;
+    var panelH = Math.max(contentH + 22, 150, (c.minH || 0) - panelY - pad);
+    var H = panelY + panelH + pad;
+    o.push(blobGroup(W, H, c.index, color));
+    // nome grande: radice in maiuscolo + tipo
+    var est = P.root.length * 44 * 0.8 + (P.type.length + 1) * 26 * 0.6, k = Math.min(1, (W - 2 * pad - 16) / est);
+    var rs = 44 * k, ts = 26 * k, ny = pad + 52;
+    o.push('<text x="' + r2(W / 2) + '" y="' + r2(ny) + '" text-anchor="middle" font-family="' + esc(POSTER_FONT) + '" font-weight="900" fill="#1a1a1a" stroke="#ffffff" stroke-width="' + r2(7 * k) + '" stroke-linejoin="round" paint-order="stroke">' +
+      '<tspan font-size="' + r2(rs) + '">' + esc(P.root) + '</tspan><tspan font-size="' + r2(ts) + '" dx="8">' + esc(P.type) + '</tspan></text>');
+    // simbolo internazionale in una pastiglia
+    var pw = view.title.length * 10 + 22;
+    o.push('<rect x="' + r2((W - pw) / 2) + '" y="' + r2(ny + 10) + '" width="' + r2(pw) + '" height="24" rx="12" fill="' + POSTER_DARK + '"/>');
+    o.push(text(W / 2, ny + 28, view.title, 16, '#ffffff', { weight: 700 }));
+    // pannello chiaro dietro al diagramma
+    o.push('<rect x="' + (pad + 4) + '" y="' + r2(panelY) + '" width="' + (W - 2 * pad - 8) + '" height="' + r2(panelH) + '" rx="14" fill="#ffffff" fill-opacity="0.92"/>');
+    var cx = W / 2;
+    if (P.locked) {
+      // bloccata: i diagrammi non si disegnano, al loro posto un chitarrista col lucchetto accanto
+      o.push(guitaristGroup(cx, panelY, W - 2 * pad - 8, panelH));
+    } else {
+      var yy = panelY + (panelH - contentH) / 2;
+      items.forEach(function (it) {
+        o.push('<g transform="translate(' + r2(cx - it.w / 2) + ' ' + r2(yy) + ') scale(' + it.scale + ')">' + it.svg + '</g>');
+        yy += it.h + gap;
+      });
+    }
+    return { svg: o.join(''), w: W, h: H };
+  }
+  // Altezza comune a tutte le schede (la tastiera a 3 ottave e' piu' bassa di quella a 2)
+  function posterMaxH(views, c) {
+    var m = 0;
+    views.forEach(function (v, i) { var h = posterCardGroup(v, { S: c.S, show: c.show, left: c.left, names: c.names, showFingers: c.showFingers, roles: c.roles, index: i, minH: 0 }).h; if (h > m) m = h; });
+    return m;
+  }
+  // Chitarrista col lucchetto: immagine di esempio di Marco, ritagliata (PNG con sfondo trasparente, 560 x 450) e incorporata.
+  // Per cambiarla basta sostituire questa costante con un altro data URI PNG; se cambiano le proporzioni, aggiornare CHITARRISTA_W e CHITARRISTA_H.
+  var CHITARRISTA_W = 560, CHITARRISTA_H = 450;
+  var CHITARRISTA_PNG = 'data:image/png;base64,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';
+  // Sta nel pannello bianco della scheda bloccata: cx = centro in x, py/ph = alto e altezza del pannello, pw = larghezza.
+  function guitaristGroup(cx, py, pw, ph) {
+    var s = Math.min((pw - 8) / CHITARRISTA_W, (ph - 8) / CHITARRISTA_H);
+    var w = CHITARRISTA_W * s, h = CHITARRISTA_H * s;
+    return '<image x="' + r2(cx - w / 2) + '" y="' + r2(py + (ph - h) / 2) + '" width="' + r2(w) + '" height="' + r2(h) + '" href="' + CHITARRISTA_PNG + '"/>';
+  }
+  function posterBannerGroup(title, W) {
+    var H = 84, size = Math.min(40, (W - 70) / Math.max(1, title.length * 0.58)), o = [];
+    o.push('<rect x="0" y="0" width="' + r2(W) + '" height="' + H + '" rx="16" fill="' + POSTER_DARK + '"/>');
+    POSTER_COLORS.forEach(function (c, i) { o.push('<circle cx="' + r2(24 + i * (W - 48) / 7) + '" cy="' + (i % 2 ? 10 : H - 10) + '" r="4" fill="' + c + '"/>'); });
+    o.push('<text x="' + r2(W / 2) + '" y="' + r2(H / 2 + size * 0.34) + '" text-anchor="middle" font-family="' + esc(POSTER_FONT) + '" font-weight="900" font-size="' + r2(size) + '" fill="' + POSTER_COLORS[0] + '">' + esc(title) + '</text>');
+    return { svg: o.join(''), w: W, h: H };
+  }
+  // Legenda: colori delle dita (solo se c'e' una chitarra) e lucchetto (solo se c'e' qualcosa di bloccato)
+  function posterLegendGroup(S, W, opt) {
+    var items = [], o = [];
+    if (opt.fingers) S.finger.forEach(function (col, i) { var lb = (i + 1) + ' = ' + FINGER_NAMES[i]; items.push({ w: 36 + lb.length * 9.5, col: col, label: lb }); });
+    if (opt.locked) items.push({ w: 36 + 'da sbloccare'.length * 9.5, lock: true, label: 'da sbloccare' });
+    if (!items.length) return { svg: '', w: W, h: 0 };
+    var rows = [[]], rw = 0;
+    items.forEach(function (it) {
+      if (rw + it.w > W - 20 && rows[rows.length - 1].length) { rows.push([]); rw = 0; }
+      rows[rows.length - 1].push(it); rw += it.w + 14;
+    });
+    rows.forEach(function (row, ri) {
+      var tot = row.reduce(function (a, it) { return a + it.w + 14; }, -14), x = (W - tot) / 2, y = ri * 36 + 20;
+      row.forEach(function (it) {
+        if (it.lock) o.push(padlockGroup(x + 11, y - 1, 18, '#2b2f3a'));
+        else o.push('<circle cx="' + r2(x + 11) + '" cy="' + y + '" r="10" fill="' + esc(it.col) + '" stroke="#1a1a1a" stroke-width="1"/>');
+        o.push('<text x="' + r2(x + 28) + '" y="' + (y + 6) + '" font-family="' + esc(POSTER_FONT) + '" font-weight="700" font-size="17" fill="#1a1a1a">' + esc(it.label) + '</text>');
+        x += it.w + 14;
+      });
+    });
+    var h = rows.length * 36 + 6;
+    return { svg: '<rect x="0" y="0" width="' + r2(W) + '" height="' + h + '" rx="14" fill="#ffffff" fill-opacity="0.8" stroke="' + POSTER_DARK + '" stroke-width="1.5"/>' + o.join(''), w: W, h: h };
+  }
+  // Tavola intera: banner scuro, schede colorate in griglia, legenda
+  function posterSvg(views, head, c) {
+    var S = c.S, cols = c.cols, gap = S.sheetGap, margin = 22, cw = S.cardW;
+    var W = margin * 2 + cols * cw + (cols - 1) * gap, y = margin, o = [];
+    var b = posterBannerGroup(head.title || 'Tavola degli accordi', W - 2 * margin);
+    o.push('<g transform="translate(' + margin + ' ' + y + ')">' + b.svg + '</g>');
+    y += b.h + gap;
+    var minH = posterMaxH(views, c);
+    var groups = views.map(function (v, i) { return posterCardGroup(v, { S: S, show: c.show, left: c.left, names: c.names, showFingers: c.showFingers, roles: c.roles, index: i, minH: minH }); });
+    for (var i = 0; i < groups.length; i += cols) {
+      var row = groups.slice(i, i + cols), rh = 0;
+      row.forEach(function (g, k) {
+        o.push('<g transform="translate(' + r2(margin + k * (cw + gap)) + ' ' + r2(y) + ')">' + g.svg + '</g>');
+        if (g.h > rh) rh = g.h;
+      });
+      y += rh + gap;
+    }
+    var lg = posterLegendGroup(S, W - 2 * margin, { fingers: c.show.chitarra, locked: views.some(function (v) { return v.poster.locked; }) });
+    if (lg.h) { o.push('<g transform="translate(' + margin + ' ' + r2(y) + ')">' + lg.svg + '</g>'); y += lg.h + gap; }
+    y += margin - gap;
+    return wrapSvg(o.join(''), W, y, S, c.bg);
+  }
+
+  return { readStyle: readStyle, guitarGroup: guitarGroup, pianoGroup: pianoGroup, cardGroup: cardGroup, legendGroup: legendGroup, wrapSvg: wrapSvg, sheetSvg: sheetSvg, esc: esc,
+    posterSvg: posterSvg, posterCardGroup: posterCardGroup, posterMaxH: posterMaxH, staffGroup: staffGroup, posterBannerGroup: posterBannerGroup, posterLegendGroup: posterLegendGroup, POSTER_PAPER: POSTER_PAPER, POSTER_FONT: POSTER_FONT };
+})();
+</script>
+
+<!-- ======================= SUONO (Web Audio, nessun file esterno) ======================= -->
+<script id="suono">
+var Suono = (function () {
+  'use strict';
+  var ctx = null, master = null, volume = 0.7, bufferCache = {}, wave = null;
+  function hz(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+
+  // L'AudioContext nasce al primo clic (regola del browser sull'audio automatico).
+  function ensure() {
+    if (!ctx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return false;
+      ctx = new AC();
+      master = ctx.createGain();
+      master.gain.value = volume;
+      var comp = ctx.createDynamicsCompressor();
+      master.connect(comp);
+      comp.connect(ctx.destination);
+      wave = ctx.createPeriodicWave(new Float32Array([0, 0, 0, 0, 0, 0, 0]), new Float32Array([0, 1, 0.55, 0.3, 0.16, 0.08, 0.04]));
+    }
+    if (ctx.state === 'suspended') ctx.resume();
+    return true;
+  }
+  function setVolume(v) {
+    volume = v;
+    if (master) master.gain.setTargetAtTime(v, ctx.currentTime, 0.02);
+  }
+
+  // Corda pizzicata (Karplus-Strong): una linea di ritardo di rumore, filtrata a ogni giro.
+  function pluckBuffer(midi) {
+    if (bufferCache[midi]) return bufferCache[midi];
+    var sr = ctx.sampleRate, f = hz(midi);
+    var n = Math.max(2, Math.round(sr / f - 0.5));      // il filtro a media aggiunge mezzo campione di ritardo
+    var len = Math.floor(sr * 2.8);
+    var buf = ctx.createBuffer(1, len, sr), d = buf.getChannelData(0);
+    var ring = new Float32Array(n), prev = 0, i;
+    for (i = 0; i < n; i++) { prev = 0.55 * prev + 0.45 * (Math.random() * 2 - 1); ring[i] = prev; }
+    var idx = 0, peak = 0;
+    for (i = 0; i < len; i++) {
+      var cur = ring[idx], nxt = ring[(idx + 1) % n];
+      d[i] = cur;
+      if (Math.abs(cur) > peak) peak = Math.abs(cur);
+      ring[idx] = (cur + nxt) * 0.5 * 0.9965;
+      idx = (idx + 1) % n;
+    }
+    for (i = 0; i < len; i++) d[i] /= peak;
+    // la linea di ritardo ha lunghezza intera: la velocità di lettura corregge l'intonazione
+    bufferCache[midi] = { buf: buf, rate: f * (n + 0.5) / sr };
+    return bufferCache[midi];
+  }
+  // hold (secondi, facoltativo): dopo questo tempo la nota si spegne, per non coprire l'accordo seguente.
+  function playPluck(midi, when, level, hold, dest) {
+    var b = pluckBuffer(midi), len = hold ? Math.min(2.6, hold + 0.25) : 2.6;
+    var src = ctx.createBufferSource(), g = ctx.createGain();
+    src.buffer = b.buf; src.playbackRate.value = b.rate;
+    g.gain.setValueAtTime(level, when);
+    g.gain.exponentialRampToValueAtTime(0.001, when + len);
+    src.connect(g); g.connect(dest);
+    src.start(when); src.stop(when + len + 0.1);
+  }
+  function chitarraAt(midis, when, step, hold, dest) {
+    var level = Math.min(0.9, 0.7 / Math.sqrt(Math.max(1, midis.length) / 3));
+    midis.forEach(function (m, i) { playPluck(m, when + i * step, level, hold, dest); });
+  }
+  // Suono di pianoforte semplice: poche armoniche, attacco rapido, decadimento esponenziale.
+  function pianoAt(midis, t, hold, dest) {
+    var peak = 0.5 / Math.sqrt(midis.length);
+    midis.forEach(function (m) {
+      var osc = ctx.createOscillator(), g = ctx.createGain(), lp = ctx.createBiquadFilter();
+      var dur = Math.max(1.2, 3 - (m - 36) * 0.03);
+      if (hold) dur = Math.min(dur, hold + 0.25);
+      osc.setPeriodicWave(wave); osc.frequency.value = hz(m);
+      lp.type = 'lowpass'; lp.frequency.value = 3200;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(peak, t + 0.006);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      osc.connect(lp); lp.connect(g); g.connect(dest);
+      osc.start(t); osc.stop(t + dur + 0.05);
+    });
+  }
+  // midis: note delle corde suonate, dalla più grave. arpeggio = note più distanziate.
+  function chitarra(midis, arpeggio) {
+    if (!midis.length || !ensure()) return false;
+    chitarraAt(midis, ctx.currentTime + 0.03, arpeggio ? 0.2 : 0.03, 0, master);
+    return true;
+  }
+  function piano(midis) {
+    if (!midis.length || !ensure()) return false;
+    pianoAt(midis, ctx.currentTime + 0.03, 0, master);
+    return true;
+  }
+  // Sequenza di accordi: le note si programmano sull'orologio dell'AudioContext (when = secondi dell'orologio).
+  // Tutto passa da un unico canale: stop() lo azzera e lo stacca, quindi le note già programmate non si sentono più.
+  function sequenza() {
+    if (!ensure()) return null;
+    var bus = ctx.createGain();
+    bus.connect(master);
+    return {
+      now: function () { return ctx.currentTime; },
+      chitarra: function (midis, when, hold) { chitarraAt(midis, when, 0.035, hold, bus); },
+      piano: function (midis, when, hold) { pianoAt(midis, when, hold, bus); },
+      stop: function () {
+        bus.gain.cancelScheduledValues(ctx.currentTime);
+        bus.gain.setTargetAtTime(0, ctx.currentTime, 0.015);
+        setTimeout(function () { bus.disconnect(); }, 400);
+      }
+    };
+  }
+  return { chitarra: chitarra, piano: piano, sequenza: sequenza, setVolume: setVolume };
+})();
+</script>
+
+<!-- ======================= APPLICAZIONE ======================= -->
+<script id="app">
+(function () {
+  'use strict';
+  var T = Teoria, D = Disegno;
+  function $(id) { return document.getElementById(id); }
+
+  var state = {
+    notation: 'int', show: { chitarra: true, piano: true, pentagramma: false }, cols: 3, names: 'accordo', left: false, fingerNums: true, fingerCols: false,
+    octaves: 'auto', roles: false, bg: 'bianco', cards: [], look: 'normale',
+    ref: null                  // accordo di riferimento per i suggerimenti in armonia
+  };
+  var nextId = 1;
+  var voicingCache = {};
+  var man = { frets: [-1, -1, -1, -1, -1, -1], base: 1, keys: [] };
+
+  function makeCard(chord, extra) {
+    var c = { id: nextId++, chord: chord, gIdx: 0, gManual: null, pInv: T.inversionForBass(chord), pManual: null, locked: false };
+    if (extra) for (var k in extra) c[k] = extra[k];
+    return c;
+  }
+  function voicingsOf(chord) {
+    var k = T.chordSig(chord);
+    if (!voicingCache[k]) voicingCache[k] = T.guitarVoicings(chord);
+    return voicingCache[k];
+  }
+  function getStyle() {
+    var cs = getComputedStyle(document.documentElement);
+    return D.readStyle(function (name) { return cs.getPropertyValue(name).trim(); });
+  }
+  function setStatus(msg) { $('stato').textContent = msg; }
+
+  // ---- dati da disegnare per una scheda ----
+  function guitarView(frets, extra) {
+    var fg = T.fingering(frets);
+    var pcs = frets.map(function (f, s) { return f < 0 ? null : (T.OPEN_MIDI[s] + f) % 12; });
+    var v = { frets: frets, fingers: fg.n > 4 ? [0, 0, 0, 0, 0, 0] : fg.fingers, barre: fg.n > 4 ? null : fg.barre, base: fg.base, pcs: pcs };
+    if (extra) for (var k in extra) v[k] = extra[k];
+    return v;
+  }
+  function nameFns(chord) {
+    var map = T.nameMap(chord), notation = state.notation;
+    function nameOfPc(pc) { return map[pc] ? T.noteName(map[pc], notation, false) : T.pcName(pc, notation); }
+    return { nameOfPc: nameOfPc, nameOfMidi: function (midi) { return nameOfPc(((midi % 12) + 12) % 12); } };
+  }
+  // Nome per la tavola: radice in note italiane maiuscole + tipo preso da Teoria (senza il simbolo tra parentesi)
+  function posterName(chord, locked) {
+    var type = T.TYPES.filter(function (t) { return t.id === chord.type; })[0];
+    var label = type ? type.label.replace(/\s*\(.*\)\s*$/, '') : '';
+    if (chord.bass) label += ' / ' + T.noteName(chord.bass, 'it', false).toUpperCase();
+    return { root: T.noteName(chord.root, 'it', false).toUpperCase(), type: label, locked: !!locked };
+  }
+  var INV_LABEL = ['fondamentale', '1ª inversione', '2ª inversione', '3ª inversione'];
+
+  function viewOf(card) {
+    var chord = card.chord, notation = state.notation, fns = nameFns(chord);
+    var tones = T.chordTones(chord);
+    var notes = tones.map(function (t) { return T.noteName(t.note, notation, false); }).join(' · ');
+    if (chord.bass && !tones.some(function (t) { return t.pc === T.notePc(chord.bass); })) notes += ' · basso ' + T.noteName(chord.bass, notation, false);
+    var view = { title: T.chordName(chord, notation), notes: notes, nameOfMidi: fns.nameOfMidi, guitar: null, guitarCaption: '', piano: null, pianoCaption: '' };
+    var list = voicingsOf(chord);
+    if (card.gManual) {
+      view.guitar = guitarView(card.gManual);
+      view.guitarCaption = 'inserito a mano';
+    } else if (list.length) {
+      var vo = list[card.gIdx % list.length];
+      view.guitar = { frets: vo.frets, fingers: vo.fingers, barre: vo.barre, base: vo.base, pcs: guitarView(vo.frets).pcs };
+      view.guitarCaption = (card.gIdx % list.length + 1) + ' di ' + list.length;
+    }
+    if (view.guitar) { view.guitar.nameOfPc = fns.nameOfPc; }
+    var notesP, inv = 0;
+    if (card.pManual) { notesP = T.pianoNotesFromMidi(chord, card.pManual); view.pianoCaption = 'inserito a mano'; }
+    else { var pn = T.pianoNotes(chord, card.pInv); notesP = pn.notes; inv = pn.inv; view.pianoCaption = INV_LABEL[inv]; }
+    var range = T.pianoRange(notesP, state.octaves);
+    view.piano = { notes: notesP, startC: range.startC, octaves: range.octaves };
+    view.staff = { notes: tones.map(function (t) { return { l: t.note.l, a: t.note.a, degree: t.degree }; }).sort(function (p, q) { return p.degree - q.degree; }), bass: chord.bass || null };
+    view.poster = posterName(chord, card.locked);
+    view.guitarCount = list.length;
+    view.maxInv = card.pManual ? 0 : T.pianoNotes(chord, 3).maxInv;
+    view.inv = inv;
+    return view;
+  }
+  function drawCtx(S, extra) {
+    var c = {
+      S: S, show: state.show, left: state.left, names: state.names,
+      showFingers: state.fingerNums, fingerCols: state.fingerCols, roles: state.roles
+    };
+    if (extra) for (var k in extra) c[k] = extra[k];
+    return c;
+  }
+  function isTavola() { return state.look === 'tavola'; }
+  // Stile della tavola: carta color crema e carattere "a mano"
+  function posterStyle(S) {
+    var P = {};
+    for (var k in S) P[k] = S[k];
+    P.paper = D.POSTER_PAPER; P.font = D.POSTER_FONT;
+    return P;
+  }
+  function posterW(S) { return state.cols * S.cardW + (state.cols - 1) * S.sheetGap; }
+  // Altezza comune delle schede della tavola (tutte uguali nella riga e nella tavola)
+  function posterMinH(S, views) {
+    return D.posterMaxH(views, drawCtx(posterStyle(S)));
+  }
+  function cardSvgString(view, S, bg, index, minH) {
+    if (isTavola()) {
+      var P = posterStyle(S), c = drawCtx(P, { index: index || 0, minH: minH || 0 });
+      var pg = D.posterCardGroup(view, c);
+      return D.wrapSvg(pg.svg, pg.w, pg.h, P, bg);
+    }
+    var g = D.cardGroup(view, drawCtx(S));
+    return D.wrapSvg(g.svg, g.w, g.h, S, bg);
+  }
+
+  // ---- ricordare il foglio (localStorage) ----
+  var STORE_KEY = 'urbania-accordi-tavola-v1';
+  function saveState() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({
+        v: 1, look: state.look, show: state.show, tavTitolo: $('tav-titolo').value, prog: $('prog').value,
+        cards: state.cards.map(function (c) { return { chord: c.chord, gIdx: c.gIdx, gManual: c.gManual, pInv: c.pInv, pManual: c.pManual, locked: !!c.locked }; })
+      }));
+    } catch (e) { /* memoria del browser non disponibile: si lavora senza */ }
+  }
+  function restoreState() {
+    try {
+      var s = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+      if (!s || s.v !== 1 || !s.cards || !s.cards.length) return false;
+      var cards = s.cards.map(function (c) {
+        T.chordName(c.chord, 'int');      // se il dato e' rovinato, lancia e si riparte da zero
+        var extra = { gIdx: c.gIdx || 0, gManual: c.gManual || null, pManual: c.pManual || null, locked: !!c.locked };
+        if (typeof c.pInv === 'number') extra.pInv = c.pInv;
+        return makeCard(c.chord, extra);
+      });
+      state.cards = cards;
+      // cosa disegnare: oggetto di tre interruttori, oppure il vecchio valore unico ('entrambi' | 'chitarra' | 'piano')
+      var old = s.mostra || (typeof s.show === 'string' ? s.show : null);
+      if (old === 'chitarra') state.show = { chitarra: true, piano: false, pentagramma: false };
+      else if (old === 'piano') state.show = { chitarra: false, piano: true, pentagramma: false };
+      else if (old === 'entrambi') state.show = { chitarra: true, piano: true, pentagramma: false };
+      else if (s.show && typeof s.show === 'object') {
+        var sw = { chitarra: s.show.chitarra === true, piano: s.show.piano === true, pentagramma: s.show.pentagramma === true };
+        if (sw.chitarra || sw.piano || sw.pentagramma) state.show = sw;
+      }
+      state.look = s.look === 'tavola' ? 'tavola' : 'normale';
+      $('aspetto').value = state.look;
+      if (typeof s.tavTitolo === 'string') $('tav-titolo').value = s.tavTitolo;
+      if (typeof s.prog === 'string') $('prog').value = s.prog;
+      state.ref = cards[0].chord; renderArmonia();
+      renderSheet();
+      setStatus('Ho ripreso il foglio salvato (' + cards.length + (cards.length === 1 ? ' accordo).' : ' accordi).'));
+      return true;
+    } catch (e) { state.cards = []; return false; }
+  }
+
+  // ---- foglio a schermo ----
+  // Aspetto Normale o Tavola: cosa si vede e quali comandi servono
+  function syncLook() {
+    var t = isTavola(), n = state.cards.length;
+    $('sheet').classList.toggle('tavola', t);
+    $('sheet-head').hidden = t;
+    $('tav-testa').hidden = !t;
+    $('tav-opz').hidden = !t;
+    var locked = state.cards.filter(function (c) { return c.locked; }).length;
+    $('tav-sblocca').disabled = !locked;
+    $('tav-blocca').disabled = !n || locked === n;
+  }
+  // Interruttori Chitarra / Tastiera / Pentagramma: l'ultimo acceso non si puo' spegnere (resta disattivato davvero),
+  // e le opzioni di uno strumento spento si nascondono
+  function syncShow() {
+    var sh = state.show, n = (sh.chitarra ? 1 : 0) + (sh.piano ? 1 : 0) + (sh.pentagramma ? 1 : 0);
+    [['mostra-g', 'chitarra'], ['mostra-p', 'piano'], ['mostra-s', 'pentagramma']].forEach(function (pair) {
+      var el = $(pair[0]);
+      el.checked = !!sh[pair[1]];
+      el.disabled = n === 1 && sh[pair[1]];
+      el.title = el.disabled ? 'Ne serve almeno uno acceso' : '';
+    });
+    $('opz-g').hidden = !sh.chitarra;
+    $('opz-p').hidden = !sh.piano;
+    $('opz-nomi').hidden = !sh.chitarra && !sh.piano;
+    $('opz-strumenti').hidden = !sh.chitarra && !sh.piano;
+  }
+  function renderSheet() {
+    var S = getStyle();
+    var grid = $('griglia');
+    syncShow();
+    syncLook();
+    var tav = isTavola();
+    if (tav) {
+      var PS = posterStyle(S), bn = D.posterBannerGroup($('tav-titolo').value.trim() || 'Tavola degli accordi', posterW(S));
+      $('tav-testa').innerHTML = D.wrapSvg(bn.svg, bn.w, bn.h, PS, false);
+    }
+    saveState();
+    grid.style.gridTemplateColumns = 'repeat(' + state.cols + ', minmax(0, 1fr))';
+    if (!state.cards.length) {
+      grid.innerHTML = '<div class="vuoto">Scrivi una progressione a sinistra e premi "Crea il foglio".</div>';
+      grid.style.gridTemplateColumns = '1fr';
+      $('legenda').innerHTML = '';
+      return;
+    }
+    var views = state.cards.map(viewOf), minH = tav ? posterMinH(S, views) : 0;
+    var html = state.cards.map(function (card, i) {
+      var view = views[i];
+      var svg = cardSvgString(view, S, false, i, minH);
+      var g = state.show.chitarra, p = state.show.piano;
+      var t = '<div class="card-tools nostampa">' +
+        (tav ? '<button type="button" data-act="lock" class="' + (card.locked ? 'bloccato' : '') + '" title="' + (card.locked ? 'Mostra di nuovo il diagramma' : 'Nascondi il diagramma dietro a un lucchetto') + '">' + (card.locked ? '&#128274; Bloccato: sblocca' : '&#128275; Blocca') + '</button>' : '') +
+        '<button type="button" data-act="left" title="Sposta prima" aria-label="Sposta prima"' + (i === 0 ? ' disabled' : '') + '>&#9664;</button>' +
+        '<button type="button" data-act="right" title="Sposta dopo" aria-label="Sposta dopo"' + (i === state.cards.length - 1 ? ' disabled' : '') + '>&#9654;</button>';
+      if (g) t += '<span class="grp">Chitarra <button type="button" data-act="gprev" title="Voicing precedente" aria-label="Voicing precedente">&#8249;</button>' +
+        '<button type="button" data-act="gnext" title="Voicing successivo" aria-label="Voicing successivo">&#8250;</button>' +
+        '<button type="button" data-act="gplay" title="Ascolta la chitarra (con Maiusc: arpeggio)">&#9654; Ascolta</button>' +
+        '<button type="button" data-act="garp" title="Ascolta le corde una alla volta">Arpeggio</button></span>';
+      if (p) {
+        t += '<span class="grp">Piano <select data-act="pinv" aria-label="Inversione del pianoforte">';
+        for (var k = 0; k <= view.maxInv; k++) t += '<option value="' + k + '"' + (!card.pManual && k === view.inv ? ' selected' : '') + '>' + INV_LABEL[k] + '</option>';
+        if (card.pManual) t += '<option value="m" selected>inserito a mano</option>';
+        t += '</select><button type="button" data-act="pplay" title="Ascolta il pianoforte">&#9654; Ascolta</button></span>';
+      }
+      t += '<button type="button" data-act="svg" title="Scarica questa scheda in SVG">SVG</button>' +
+        '<button type="button" data-act="png" title="Scarica questa scheda in PNG">PNG</button>' +
+        '<button type="button" data-act="del" title="Togli questa scheda" aria-label="Togli questa scheda">&#10005;</button></div>';
+      return '<div class="card" data-id="' + card.id + '"><div class="card-svg">' + svg + '</div>' + t + '</div>';
+    }).join('');
+    grid.innerHTML = html;
+    markPlaying();
+    if (tav) {
+      var plg = D.posterLegendGroup(posterStyle(S), posterW(S), { fingers: state.show.chitarra, locked: state.cards.some(function (c) { return c.locked; }) });
+      $('legenda').innerHTML = plg.h ? D.wrapSvg(plg.svg, plg.w, plg.h, posterStyle(S), false) : '';
+    } else if (state.roles && state.show.piano) {
+      var lg = D.legendGroup(S, S.labelSize * 65);
+      $('legenda').innerHTML = D.wrapSvg(lg.svg, lg.w, lg.h, S, false);
+    } else $('legenda').innerHTML = '';
+  }
+
+  // ---- progressione ----
+  function applyProgression() {
+    var res = T.parseProgression($('prog').value);
+    var old = state.cards;
+    state.cards = res.chords.map(function (ch, i) {
+      var o = old[i];
+      if (o && !o.gManual && !o.pManual && T.chordSig(o.chord) === T.chordSig(ch)) return o;
+      return makeCard(ch);
+    });
+    $('errori').textContent = res.errors.length ? 'Non riconosciuto: ' + res.errors.join(', ') + '. Controlla come è scritto.' : '';
+    if (state.cards.length) { state.ref = state.cards[0].chord; renderArmonia(); }
+    renderSheet();
+    setStatus(state.cards.length ? 'Foglio con ' + state.cards.length + (state.cards.length === 1 ? ' accordo.' : ' accordi.') : '');
+  }
+
+  // ---- esportazione ----
+  function download(name, blob) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+  }
+  function svgBlob(svg) { return new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n' + svg], { type: 'image/svg+xml;charset=utf-8' }); }
+  function svgSize(svg) {
+    var m = /width="([\d.]+)" height="([\d.]+)"/.exec(svg);
+    return { w: parseFloat(m[1]), h: parseFloat(m[2]) };
+  }
+  // SVG -> immagine -> canvas a 3x -> PNG
+  function svgToPng(svg, transparent, fileName) {
+    var size = svgSize(svg), scale = 3;
+    var img = new Image();
+    img.onload = function () {
+      var cv = document.createElement('canvas');
+      cv.width = Math.round(size.w * scale); cv.height = Math.round(size.h * scale);
+      var ctx = cv.getContext('2d');
+      if (!transparent) { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, cv.width, cv.height); }
+      ctx.drawImage(img, 0, 0, cv.width, cv.height);
+      cv.toBlob(function (blob) {
+        if (!blob) { setStatus('Non sono riuscito a creare il PNG.'); return; }
+        download(fileName, blob);
+        setStatus('Scaricato ' + fileName);
+      }, 'image/png');
+    };
+    img.onerror = function () { setStatus('Non sono riuscito a creare il PNG.'); };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  }
+  function safeName(s) { return s.replace(/[\\\/:*?"<>|]/g, '_').replace(/\s+/g, '_'); }
+  function exportCard(card, kind) {
+    var S = getStyle(), view = viewOf(card);
+    var wantBg = state.bg === 'bianco';
+    var svg = cardSvgString(view, S, wantBg, state.cards.indexOf(card), isTavola() ? posterMinH(S, state.cards.map(viewOf)) : 0);
+    var base = (isTavola() ? 'tavola-' : 'accordo-') + safeName(view.title);
+    if (kind === 'svg') { download(base + '.svg', svgBlob(svg)); setStatus('Scaricato ' + base + '.svg'); }
+    else svgToPng(svg, !wantBg, base + '.png');
+  }
+  function sheetSvgString(S, bg) {
+    var views = state.cards.map(viewOf);
+    if (isTavola()) return D.posterSvg(views, { title: $('tav-titolo').value.trim() }, drawCtx(posterStyle(S), { cols: state.cols, bg: bg }));
+    return D.sheetSvg(views, { title: $('titolo').value.trim(), subtitle: $('sottotitolo').value.trim() }, drawCtx(S, { cols: state.cols, bg: bg }));
+  }
+  function exportSheet(kind) {
+    if (!state.cards.length) { setStatus('Il foglio è vuoto.'); return; }
+    var S = getStyle(), wantBg = state.bg === 'bianco';
+    var svg = sheetSvgString(S, wantBg);
+    var base = isTavola() ? 'tavola-accordi' : 'foglio-accordi';
+    if (kind === 'svg') { download(base + '.svg', svgBlob(svg)); setStatus('Scaricato ' + base + '.svg'); }
+    else svgToPng(svg, !wantBg, base + '.png');
+  }
+
+  // ---- ascolto ----
+  function playGuitar(g, arpeggio) {
+    var midis = [];
+    if (g) g.frets.forEach(function (f, s) { if (f >= 0) midis.push(T.OPEN_MIDI[s] + f); });
+    if (!midis.length) { setStatus('Nessuna corda da suonare.'); return; }
+    if (!Suono.chitarra(midis, arpeggio)) setStatus("Questo browser non riproduce l'audio.");
+  }
+  function playPiano(midis) {
+    if (!midis.length) { setStatus('Nessun tasto da suonare.'); return; }
+    if (!Suono.piano(midis)) setStatus("Questo browser non riproduce l'audio.");
+  }
+
+  // ---- costruzione da nota e tipo, anteprima, accordi in armonia ----
+  var TYPE_ORDER = ['maj', 'm', '7', 'maj7', 'm7', 'dim', 'aug', 'sus2', 'sus4', 'dim7', 'm7b5', 'add9', '6', 'm6', '9'];
+  function pickedChord() {
+    var type = T.TYPES.filter(function (t) { return t.id === $('add-tipo').value; })[0];
+    return T.parseChord($('add-nota').value + type.sym);
+  }
+  function fillNotes() {
+    var sel = $('add-nota'), keep = sel.value;
+    sel.innerHTML = T.ROOT_NAMES.map(function (n) {
+      return '<option value="' + n + '">' + D.esc(T.noteName(T.parseNote(n), state.notation, false)) + '</option>';
+    }).join('');
+    if (keep) sel.value = keep;
+  }
+  function addChord(ch) {
+    state.cards.push(makeCard(ch));
+    $('prog').value = ($('prog').value.trim() + ' ' + T.chordName(ch, state.notation)).trim();
+    renderSheet();
+    setStatus('Aggiunto ' + T.chordName(ch, state.notation) + ' al foglio.');
+  }
+  // Suona un accordo subito (senza aggiungerlo), con lo strumento scelto sopra il foglio.
+  function previewChord(ch) {
+    var view = viewOf(makeCard(ch)), what = $('seq-strum').value;
+    if (what !== 'piano' && view.guitar) playGuitar(view.guitar, false);
+    if (what !== 'chitarra') playPiano(view.piano.notes.map(function (n) { return n.midi; }));
+  }
+  var sugList = [];
+  function renderArmonia() {
+    var box = $('armonia'), ref = state.ref, n = state.notation;
+    if (!ref) { box.innerHTML = ''; return; }
+    var mode = T.chordMode(ref), list = T.keyChords(ref.root, mode);
+    var key = T.noteName(ref.root, n, false) + ' ' + mode;
+    var h = '<h3>Accordi in armonia con ' + D.esc(T.chordName(ref, n)) + '</h3>' +
+      '<p class="aiuto">Sono gli accordi della tonalità di ' + D.esc(key) + ': un punto di partenza, non una regola. ' +
+      'Con il bordo pieno i più usati, con il bordo tratteggiato la relativa.</p><div class="sug-lista">';
+    list.forEach(function (it, i) {
+      var name = T.chordName(it.chord, n);
+      h += '<span class="sug' + (it.tag ? ' ' + it.tag : '') + '">' +
+        '<button type="button" class="sug-add" data-i="' + i + '" title="Aggiungi ' + D.esc(name) + ' al foglio">' + D.esc(name) + '<small>' + D.esc(it.roman) + '</small></button>' +
+        '<button type="button" class="sug-play" data-i="' + i + '" title="Ascolta ' + D.esc(name) + '" aria-label="Ascolta ' + D.esc(name) + '">&#9654;</button></span>';
+    });
+    box.innerHTML = h + '</div>';
+    sugList = list;
+  }
+
+  // ---- riproduzione in sequenza ----
+  var seq = { on: false, timer: null, ctl: null, idx: 0, next: 0, events: [], hi: null, done: false, endAt: 0 };
+  function markPlaying() {
+    document.querySelectorAll('#griglia .card').forEach(function (el) {
+      el.classList.toggle('suona', seq.hi !== null && parseInt(el.getAttribute('data-id'), 10) === seq.hi);
+    });
+  }
+  function highlight(id) {
+    seq.hi = id;
+    markPlaying();
+    var el = id === null ? null : document.querySelector('#griglia .card.suona');
+    if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+  function seqUi(on) {
+    $('seq-play').disabled = on;
+    $('seq-stop').disabled = !on;
+  }
+  function stopSeq(msg) {
+    if (seq.timer) { clearInterval(seq.timer); seq.timer = null; }
+    if (seq.ctl) { seq.ctl.stop(); seq.ctl = null; }
+    seq.on = false; seq.events = [];
+    highlight(null);
+    seqUi(false);
+    $('seq-stato').textContent = msg || '';
+  }
+  // Programma gli accordi con un breve anticipo sull'orologio audio; l'evidenziazione segue lo stesso orologio.
+  function tickSeq() {
+    var now = seq.ctl.now();
+    while (!seq.done && seq.next < now + 1.0) {
+      if (seq.idx >= state.cards.length) {
+        if ($('seq-loop').checked && state.cards.length) seq.idx = 0;
+        else { seq.done = true; seq.endAt = seq.next; break; }
+      }
+      var card = state.cards[seq.idx], view = viewOf(card), what = $('seq-strum').value;
+      var dur = parseInt($('seq-beats').value, 10) * 60 / parseInt($('seq-bpm').value, 10);
+      if (what !== 'piano' && view.guitar) {
+        var gm = [];
+        view.guitar.frets.forEach(function (f, s) { if (f >= 0) gm.push(T.OPEN_MIDI[s] + f); });
+        if (gm.length) seq.ctl.chitarra(gm, seq.next, dur);
+      }
+      if (what !== 'chitarra') seq.ctl.piano(view.piano.notes.map(function (n) { return n.midi; }), seq.next, dur);
+      seq.events.push({ t: seq.next, id: card.id, n: seq.idx + 1, of: state.cards.length, name: view.title });
+      seq.next += dur;
+      seq.idx++;
+    }
+    var cur = null;
+    while (seq.events.length && seq.events[0].t <= now) cur = seq.events.shift();
+    if (cur) {
+      highlight(cur.id);
+      $('seq-stato').textContent = 'Suona ' + cur.name + ' (' + cur.n + ' di ' + cur.of + ')';
+    }
+    if (seq.done && !seq.events.length && now >= seq.endAt) stopSeq('Sequenza finita.');
+  }
+  function startSeq() {
+    if (!state.cards.length) { $('seq-stato').textContent = 'Il foglio è vuoto: aggiungi almeno un accordo.'; return; }
+    stopSeq();
+    var ctl = Suono.sequenza();
+    if (!ctl) { $('seq-stato').textContent = "Questo browser non riproduce l'audio."; return; }
+    seq.ctl = ctl; seq.on = true; seq.idx = 0; seq.next = ctl.now() + 0.1; seq.events = []; seq.done = false;
+    seqUi(true);
+    seq.timer = setInterval(tickSeq, 40);
+    tickSeq();
+  }
+
+  // ---- modo manuale ----
+  function resultHtml(list, notation) {
+    if (!list.length) return 'Nessun accordo riconosciuto (servono almeno tre note diverse che formino uno degli accordi di questo strumento).';
+    var best = list[0];
+    var h = 'Accordo: <strong>' + D.esc(T.chordName(best, notation)) + '</strong> (' + D.esc(T.chordTones(best).map(function (t) { return T.noteName(t.note, notation, false); }).join(' · ')) + ')';
+    if (list.length > 1) h += '<br><span class="aiuto">Si puo\' leggere anche come: ' + D.esc(list.slice(1, 5).map(function (c) { return T.chordName(c, notation); }).join(', ')) + '</span>';
+    return h;
+  }
+  function manualGuitarState() {
+    var pcs = [], bass = null;
+    man.frets.forEach(function (f, s) {
+      if (f < 0) return;
+      var pc = (T.OPEN_MIDI[s] + f) % 12;
+      if (bass === null) bass = pc;
+      pcs.push(pc);
+    });
+    return { list: T.identify(pcs, bass), count: pcs.length };
+  }
+  function renderManual() {
+    var S = getStyle(), notation = state.notation;
+    // chitarra
+    var gs = manualGuitarState();
+    var best = gs.list[0];
+    var names = best ? T.nameMap(best) : {};
+    function nameOfPc(pc) { return names[pc] ? T.noteName(names[pc], notation, false) : T.pcName(pc, notation); }
+    var v = guitarView(man.frets.slice());
+    v.nameOfPc = nameOfPc;
+    var gg = D.guitarGroup(v, { S: S, left: state.left, names: 'accordo', showFingers: state.fingerNums, fingerCols: state.fingerCols, hit: true, base: man.base });
+    $('man-g').innerHTML = D.wrapSvg(gg.svg, gg.w, gg.h, S, false);
+    $('man-g-ris').innerHTML = gs.count ? resultHtml(gs.list, notation) : 'Clicca sulle corde per costruire un accordo.';
+    $('man-g-add').disabled = !best;
+    // pianoforte
+    var midis = man.keys.slice().sort(function (a, b) { return a - b; });
+    var pcs = midis.map(function (m) { return m % 12; });
+    var plist = T.identify(pcs, midis.length ? midis[0] % 12 : 0);
+    var pbest = plist[0];
+    var pnames = pbest ? T.nameMap(pbest) : {};
+    function pName(midi) { var pc = midi % 12; return pnames[pc] ? T.noteName(pnames[pc], notation, false) : T.pcName(pc, notation); }
+    var notes = midis.map(function (m) { return { midi: m, role: 'root', note: null }; });
+    var pg = D.pianoGroup({ notes: notes, startC: 48, octaves: 3 }, { S: S, availW: 560, names: 'accordo', roles: false, nameOfMidi: pName, hit: true });
+    $('man-p').innerHTML = D.wrapSvg(pg.svg, pg.w, pg.h, S, false);
+    $('man-p-ris').innerHTML = midis.length ? resultHtml(plist, notation) : 'Clicca i tasti per accendere le note.';
+    $('man-p-add').disabled = !pbest;
+    manualResult = { g: best || null, p: pbest || null };
+  }
+  var manualResult = { g: null, p: null };
+
+  // ---- collegamenti ----
+  function fillSelects() {
+    var tipo = $('add-tipo');
+    fillNotes();
+    tipo.innerHTML = TYPE_ORDER.map(function (id) { var t = T.TYPES.filter(function (x) { return x.id === id; })[0]; return '<option value="' + t.id + '">' + t.label + '</option>'; }).join('');
+    var b = '';
+    for (var i = 1; i <= 12; i++) b += '<option value="' + i + '">' + (i === 1 ? '1 (con capotasto)' : i) + '</option>';
+    $('man-base').innerHTML = b;
+  }
+  function bind() {
+    $('applica').addEventListener('click', applyProgression);
+    $('prog').addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); applyProgression(); } });
+    document.querySelectorAll('[data-prog]').forEach(function (b) {
+      b.addEventListener('click', function () { $('prog').value = b.getAttribute('data-prog'); applyProgression(); });
+    });
+    $('aggiungi').addEventListener('click', function () {
+      var ch = pickedChord();
+      addChord(ch);
+      state.ref = ch; renderArmonia();
+    });
+    $('anteprima').addEventListener('click', function () { previewChord(pickedChord()); });
+    ['add-nota', 'add-tipo'].forEach(function (id) {
+      $(id).addEventListener('change', function () { state.ref = pickedChord(); renderArmonia(); });
+    });
+    // Un suggerimento: il pulsante col nome lo aggiunge (la tonalità resta quella), la freccia lo fa solo ascoltare.
+    $('armonia').addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-i]');
+      if (!b) return;
+      var it = sugList[parseInt(b.getAttribute('data-i'), 10)];
+      if (!it) return;
+      if (b.classList.contains('sug-play')) previewChord(it.chord); else addChord(it.chord);
+    });
+    $('seq-play').addEventListener('click', startSeq);
+    $('seq-stop').addEventListener('click', function () { stopSeq('Fermato.'); });
+    $('seq-bpm').addEventListener('input', function () { $('seq-bpm-val').textContent = $('seq-bpm').value; });
+    document.querySelectorAll('input[name=notazione]').forEach(function (r) {
+      r.addEventListener('change', function () { state.notation = r.value; fillNotes(); renderArmonia(); refresh(); });
+    });
+    // Chitarra, Tastiera, Pentagramma: tre interruttori indipendenti, ne resta sempre acceso almeno uno
+    [['mostra-g', 'chitarra'], ['mostra-p', 'piano'], ['mostra-s', 'pentagramma']].forEach(function (pair) {
+      $(pair[0]).addEventListener('change', function () {
+        state.show[pair[1]] = $(pair[0]).checked;
+        syncShow(); refresh();
+      });
+    });
+    var sel = { colonne: 'cols', nomi: 'names', ottave: 'octaves', sfondo: 'bg' };
+    Object.keys(sel).forEach(function (id) {
+      $(id).addEventListener('change', function () { state[sel[id]] = id === 'colonne' ? parseInt($(id).value, 10) : $(id).value; refresh(); });
+    });
+    var chk = { mancina: 'left', numeri: 'fingerNums', coloridita: 'fingerCols', ruoli: 'roles' };
+    Object.keys(chk).forEach(function (id) {
+      $(id).addEventListener('change', function () { state[chk[id]] = $(id).checked; refresh(); });
+    });
+    $('grande').addEventListener('change', function () { document.documentElement.classList.toggle('grande', $('grande').checked); refresh(); });
+    $('contrasto').addEventListener('change', function () { document.documentElement.classList.toggle('contrasto', $('contrasto').checked); refresh(); });
+    $('aspetto').addEventListener('change', function () { state.look = $('aspetto').value; refresh(); });
+    $('tav-titolo').addEventListener('input', refresh);
+    $('tav-sblocca').addEventListener('click', function () { state.cards.forEach(function (c) { c.locked = false; }); refresh(); });
+    $('tav-blocca').addEventListener('click', function () { state.cards.forEach(function (c) { c.locked = true; }); refresh(); });
+    $('esp-svg').addEventListener('click', function () { exportSheet('svg'); });
+    $('esp-png').addEventListener('click', function () { exportSheet('png'); });
+    $('stampa').addEventListener('click', function () { window.print(); });
+
+    $('griglia').addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      var cardEl = btn.closest('.card'), id = parseInt(cardEl.getAttribute('data-id'), 10);
+      var i = state.cards.findIndex(function (c) { return c.id === id; });
+      if (i < 0) return;
+      var card = state.cards[i], act = btn.getAttribute('data-act');
+      if (act === 'left' && i > 0) { state.cards.splice(i - 1, 0, state.cards.splice(i, 1)[0]); }
+      else if (act === 'right' && i < state.cards.length - 1) { state.cards.splice(i + 1, 0, state.cards.splice(i, 1)[0]); }
+      else if (act === 'del') { state.cards.splice(i, 1); }
+      else if (act === 'lock') { card.locked = !card.locked; }
+      else if (act === 'gnext' || act === 'gprev') {
+        var n = voicingsOf(card.chord).length || 1;
+        card.gManual = null;
+        card.gIdx = (card.gIdx + (act === 'gnext' ? 1 : n - 1)) % n;
+      }
+      else if (act === 'svg' || act === 'png') { exportCard(card, act); return; }
+      else if (act === 'gplay' || act === 'garp') { playGuitar(viewOf(card).guitar, act === 'garp' || e.shiftKey); return; }
+      else if (act === 'pplay') { playPiano(viewOf(card).piano.notes.map(function (n) { return n.midi; })); return; }
+      renderSheet();
+    });
+    $('griglia').addEventListener('change', function (e) {
+      var sel2 = e.target.closest('select[data-act=pinv]');
+      if (!sel2 || sel2.value === 'm') return;
+      var id = parseInt(sel2.closest('.card').getAttribute('data-id'), 10);
+      var card = state.cards.filter(function (c) { return c.id === id; })[0];
+      card.pManual = null; card.pInv = parseInt(sel2.value, 10);
+      renderSheet();
+    });
+
+    document.querySelectorAll('.tabs button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var t = b.getAttribute('data-tab');
+        $('tab-foglio').hidden = t !== 'foglio'; $('tab-manuale').hidden = t !== 'manuale';
+        document.querySelectorAll('.tabs button').forEach(function (x) { x.setAttribute('aria-selected', x === b ? 'true' : 'false'); });
+        if (t === 'manuale') renderManual();
+      });
+    });
+    $('man-base').addEventListener('change', function () { man.base = parseInt($('man-base').value, 10); renderManual(); });
+    $('man-g').addEventListener('click', function (e) {
+      var h = e.target.closest('[data-hit=g]');
+      if (!h) return;
+      var s = parseInt(h.getAttribute('data-s'), 10), f = h.getAttribute('data-f');
+      if (f === 'open') man.frets[s] = man.frets[s] === 0 ? -1 : 0;
+      else { var fn = parseInt(f, 10); man.frets[s] = man.frets[s] === fn ? -1 : fn; }
+      renderManual();
+    });
+    $('man-p').addEventListener('click', function (e) {
+      var h = e.target.closest('[data-hit=p]');
+      if (!h) return;
+      var m = parseInt(h.getAttribute('data-m'), 10), k = man.keys.indexOf(m);
+      if (k >= 0) man.keys.splice(k, 1); else man.keys.push(m);
+      renderManual();
+    });
+    $('man-g-play').addEventListener('click', function (e) { playGuitar({ frets: man.frets }, e.shiftKey); });
+    $('man-p-play').addEventListener('click', function () { playPiano(man.keys.slice().sort(function (a, b) { return a - b; })); });
+    $('volume').addEventListener('input', function () { Suono.setVolume(parseFloat($('volume').value)); });
+    $('man-g-reset').addEventListener('click', function () { man.frets = [-1, -1, -1, -1, -1, -1]; renderManual(); });
+    $('man-p-reset').addEventListener('click', function () { man.keys = []; renderManual(); });
+    $('man-g-add').addEventListener('click', function () {
+      if (!manualResult.g) return;
+      state.cards.push(makeCard(manualResult.g, { gManual: man.frets.slice() }));
+      renderSheet(); setStatus('Accordo della chitarra aggiunto al foglio.');
+    });
+    $('man-p-add').addEventListener('click', function () {
+      if (!manualResult.p) return;
+      state.cards.push(makeCard(manualResult.p, { pManual: man.keys.slice() }));
+      renderSheet(); setStatus('Accordo del pianoforte aggiunto al foglio.');
+    });
+  }
+  function refresh() { renderSheet(); if (!$('tab-manuale').hidden) renderManual(); }
+
+  fillSelects();
+  bind();
+  state.ref = pickedChord();
+  if (!restoreState()) applyProgression();
+})();
+</script>
+</body>
+</html>
