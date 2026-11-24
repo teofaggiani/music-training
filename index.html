@@ -127,7 +127,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .sheet-head input{display:block;width:100%;border:1px dashed transparent;background:transparent;font-family:var(--font);color:var(--title-color);padding:2px 4px;border-radius:4px}
 .sheet-head input:hover,.sheet-head input:focus{border-color:var(--ui-border)}
 #titolo{font-size:30px;font-weight:700}
-#sottotitolo{font-size:17px;color:var(--muted)}
 .griglia{display:grid;gap:14px;margin-top:14px;align-items:start}
 .card{break-inside:avoid;background:var(--paper)}
 .card-svg svg{width:100%;height:auto;display:block}
@@ -150,7 +149,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .risultato{font-size:16px;margin:8px 0}
 .risultato strong{font-size:22px}
 .costruisci{background:#f6f8fc;border:1px solid var(--ui-border);border-radius:8px;padding:6px 10px;margin-bottom:8px}
-.salvataggio{font-size:12px;color:var(--muted);margin:4px 0}
+
 .seq-picker{display:grid;gap:4px;padding:8px 8px 0}
 .seq-picker label{margin:0;font-size:11px}
 .seq-picker select{font-size:13px;padding:4px}
@@ -201,15 +200,21 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
 <main class="layout">
 <aside class="panel" aria-label="Impostazioni">
-  <details open>
-    <summary>1. Aggiungi o scrivi accordi</summary>
-    <div class="costruisci">
-      <div class="row due">
-        <div><label for="add-nota">Nota</label><select id="add-nota"></select></div>
-        <div><label for="add-tipo">Tipo</label><select id="add-tipo"></select></div>
-      </div>
-      <div class="row"><button id="anteprima" type="button">&#9654; Ascolta</button><button id="aggiungi" type="button" class="primario">Aggiungi al foglio</button></div>
-      <p id="salvataggio" class="salvataggio" role="status" aria-live="polite"></p>
+  <details>
+    <summary>1. Chitarra o pianoforte</summary>
+    <label>Cosa disegnare</label>
+    <label class="inline"><input type="checkbox" id="mostra-g" checked> Chitarra</label>
+    <label class="inline"><input type="checkbox" id="mostra-p" checked> Tastiera (pianoforte)</label>
+    <label class="inline"><input type="checkbox" id="mostra-s"> Pentagramma</label>
+    <p class="aiuto">Si possono accendere in qualunque combinazione. Ne resta sempre acceso almeno uno.</p>
+    <label>Nomi degli accordi</label>
+    <label class="inline"><input type="radio" name="notazione" value="int"> Internazionale (C, Am)</label>
+    <label class="inline"><input type="radio" name="notazione" value="it" checked> Italiana (Do, Lam)</label>
+    <div class="row due">
+      <div><label for="colonne">Colonne</label>
+      <select id="colonne"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></div>
+      <div id="opz-nomi"><label for="nomi">Nomi delle note</label>
+      <select id="nomi"><option value="nessuno">Nessuno</option><option value="accordo" selected>Solo dell'accordo</option><option value="tutti">Tutti i tasti</option></select></div>
     </div>
   </details>
 
@@ -228,26 +233,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
     <div id="errori" class="errore" role="alert"></div>
   </details>
 
-  <details>
-    <summary>3. Come si leggono</summary>
-    <label>Nomi degli accordi</label>
-    <label class="inline"><input type="radio" name="notazione" value="int"> Internazionale (C, Am)</label>
-    <label class="inline"><input type="radio" name="notazione" value="it" checked> Italiana (Do, Lam)</label>
-    <label>Cosa disegnare</label>
-    <label class="inline"><input type="checkbox" id="mostra-g" checked> Chitarra</label>
-    <label class="inline"><input type="checkbox" id="mostra-p" checked> Tastiera (pianoforte)</label>
-    <label class="inline"><input type="checkbox" id="mostra-s"> Pentagramma</label>
-    <p class="aiuto">Si possono accendere in qualunque combinazione. Ne resta sempre acceso almeno uno.</p>
-    <div class="row due">
-      <div><label for="colonne">Colonne</label>
-      <select id="colonne"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></div>
-      <div id="opz-nomi"><label for="nomi">Nomi delle note</label>
-      <select id="nomi"><option value="nessuno">Nessuno</option><option value="accordo" selected>Solo dell'accordo</option><option value="tutti">Tutti i tasti</option></select></div>
-    </div>
-  </details>
-
   <details id="opz-strumenti">
-    <summary>4. Chitarra e pianoforte</summary>
+    <summary>3. Illustrazione diteggiatura</summary>
     <div id="opz-g">
       <label class="inline"><input type="checkbox" id="mancina"> Chitarra per mancini</label>
       <label class="inline"><input type="checkbox" id="numeri" checked> Numeri delle dita</label>
@@ -261,7 +248,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   </details>
 
   <details class="aspetto">
-    <summary>5. Foglio normale o tavola colorata</summary>
+    <summary>4. Foglio normale o tavola colorata</summary>
     <label for="aspetto">Aspetto del foglio</label>
     <select id="aspetto"><option value="normale" selected>Normale</option><option value="tavola">Tavola colorata per la classe</option></select>
     <div id="tav-opz" hidden>
@@ -272,13 +259,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   </details>
 
   <details>
-    <summary>6. Accessibilità</summary>
+    <summary>5. Accessibilità</summary>
     <label class="inline"><input type="checkbox" id="grande"> Modalità grande (linee e scritte più grandi)</label>
     <label class="inline"><input type="checkbox" id="contrasto"> Alto contrasto</label>
   </details>
 
   <details>
-    <summary>7. Esporta e stampa</summary>
+    <summary>6. Esporta e stampa</summary>
     <label for="sfondo">Sfondo di SVG e PNG</label>
     <select id="sfondo"><option value="bianco" selected>Bianco</option><option value="trasparente">Trasparente</option></select>
     <div class="row">
@@ -298,6 +285,14 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   </div>
 
   <div id="tab-foglio">
+    <div class="sheet" id="sheet">
+      <div id="tav-testa" class="tav-testa" hidden></div>
+      <div class="sheet-head" id="sheet-head">
+        <input type="text" id="titolo" value="Il mio foglio di accordi" aria-label="Titolo del foglio" placeholder="Titolo">
+      </div>
+      <div id="griglia" class="griglia"></div>
+      <div id="legenda" class="legenda"></div>
+    </div>
     <div class="ed-wrap nostampa seq-bar" role="group" aria-label="Suona la sequenza">
       <div class="row">
         <button id="seq-play" type="button" class="primario">&#9654; Suona la sequenza</button>
@@ -314,15 +309,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
           <input type="range" id="seq-metronome-volume" min="0" max="1" step="0.01" value="0.5"></div>
       </div>
       <div id="seq-stato" class="aiuto" role="status" aria-live="polite">La sequenza inizia con un conteggio di 4 battiti. Ogni accordo dura una battuta in 4/4.</div>
-    </div>
-    <div class="sheet" id="sheet">
-      <div id="tav-testa" class="tav-testa" hidden></div>
-      <div class="sheet-head" id="sheet-head">
-        <input type="text" id="titolo" value="Il mio foglio di accordi" aria-label="Titolo del foglio" placeholder="Titolo">
-        <input type="text" id="sottotitolo" value="" aria-label="Sottotitolo del foglio" placeholder="Sottotitolo (facoltativo)">
-      </div>
-      <div id="griglia" class="griglia"></div>
-      <div id="legenda" class="legenda"></div>
+      <div id="seq-audio-status" class="aiuto" role="status" aria-live="polite">Al primo ascolto vengono caricati da Internet i campioni audio (circa 4,5 MB).</div>
+      <p class="aiuto">Campioni FluidR3_GM con licenza <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener noreferrer">CC BY 3.0</a>, forniti da <a href="https://github.com/gleitz/midi-js-soundfonts" target="_blank" rel="noopener noreferrer">MIDI.js Soundfonts</a>.</p>
     </div>
     <div class="ed-wrap nostampa" id="pattern-wrap">
       <h2>Pattern ritmico (4/4)</h2>
@@ -1302,13 +1290,31 @@ var Disegno = (function () {
 })();
 </script>
 
-<!-- ======================= SUONO (Web Audio, nessun file esterno) ======================= -->
+<!-- ======================= SUONO (Web Audio, campioni SoundFont con fallback sintetizzato) ======================= -->
 <script id="suono">
 var Suono = (function () {
   'use strict';
-  var ctx = null, master = null, volume = 0.7, bufferCache = {}, wave = null;
+  var ctx = null, master = null, instrumentInput = null, reverb = null, volume = 0.7, bufferCache = {}, wave = null;
+  var soundfontNames = { chitarra: 'acoustic_guitar_steel', piano: 'acoustic_grand_piano' };
+  var soundfonts = {}, soundfontLoads = {};
   function hz(m) { return 440 * Math.pow(2, (m - 69) / 12); }
 
+  function makeReverbBuffer(context) {
+    var rate = context.sampleRate, length = Math.floor(rate * 1.4);
+    var buffer = context.createBuffer(2, length, rate);
+    for (var channel = 0; channel < 2; channel++) {
+      var data = buffer.getChannelData(channel);
+      for (var i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 3.2);
+    }
+    return buffer;
+  }
+  function makeInstrumentBus(dest) {
+    var input = ctx.createGain(), dry = ctx.createGain(), wet = ctx.createGain();
+    dry.gain.value = 0.86; wet.gain.value = 0.18;
+    input.connect(dry); dry.connect(dest);
+    input.connect(reverb); reverb.connect(wet); wet.connect(dest);
+    return input;
+  }
   // L'AudioContext nasce al primo clic (regola del browser sull'audio automatico).
   function ensure() {
     if (!ctx) {
@@ -1320,10 +1326,38 @@ var Suono = (function () {
       var comp = ctx.createDynamicsCompressor();
       master.connect(comp);
       comp.connect(ctx.destination);
+      reverb = ctx.createConvolver();
+      reverb.buffer = makeReverbBuffer(ctx);
+      instrumentInput = makeInstrumentBus(master);
       wave = ctx.createPeriodicWave(new Float32Array([0, 0, 0, 0, 0, 0, 0]), new Float32Array([0, 1, 0.55, 0.3, 0.16, 0.08, 0.04]));
     }
     if (ctx.state === 'suspended') ctx.resume();
     return true;
+  }
+  function loadSoundfont(kind) {
+    if (soundfonts[kind]) return Promise.resolve(soundfonts[kind]);
+    if (soundfontLoads[kind]) return soundfontLoads[kind];
+    if (!window.Soundfont || typeof window.Soundfont.instrument !== 'function') {
+      return Promise.reject(new Error('Il lettore dei campioni audio non è disponibile.'));
+    }
+    var request;
+    try {
+      request = window.Soundfont.instrument(ctx, soundfontNames[kind], {
+        soundfont: 'FluidR3_GM', format: 'mp3', destination: instrumentInput,
+        gain: 0.75, attack: 0.006, decay: 0.12, sustain: 0.65, release: 0.35
+      });
+    } catch (error) {
+      return Promise.reject(error);
+    }
+    soundfontLoads[kind] = Promise.resolve(request).then(function (instrument) {
+      soundfonts[kind] = instrument;
+      soundfontLoads[kind] = null;
+      return instrument;
+    }, function (error) {
+      soundfontLoads[kind] = null;
+      throw error;
+    });
+    return soundfontLoads[kind];
   }
   // Corda pizzicata (Karplus-Strong): una linea di ritardo di rumore, filtrata a ogni giro.
   function pluckBuffer(midi) {
@@ -1377,6 +1411,20 @@ var Suono = (function () {
       osc.start(t); osc.stop(t + dur + 0.05);
     });
   }
+  function sampledGuitarAt(instrument, midis, when, step, hold, gain) {
+    var level = Math.min(0.75, 0.5 / Math.sqrt(Math.max(1, midis.length) / 3)) * (gain === undefined ? 1 : gain);
+    var duration = hold ? Math.max(0.35, Math.min(2.4, hold + 0.25)) : 2.4;
+    midis.forEach(function (m, i) {
+      instrument.play(m, when + i * step, { gain: level, attack: 0.005, decay: 0.18, sustain: 0.4, release: 0.3, duration: duration });
+    });
+  }
+  function sampledPianoAt(instrument, midis, when, hold, gain) {
+    var peak = 0.48 / Math.sqrt(midis.length) * (gain === undefined ? 1 : gain);
+    var duration = hold ? Math.max(0.7, Math.min(3.2, hold + 0.45)) : 3.2;
+    midis.forEach(function (m) {
+      instrument.play(m, when, { gain: peak, attack: 0.006, decay: 0.15, sustain: 0.75, release: 0.55, duration: duration });
+    });
+  }
   function clickAt(t, accented, dest, volume) {
     if (volume === 0) return;
     var osc = ctx.createOscillator(), gain = ctx.createGain(), lp = ctx.createBiquadFilter();
@@ -1391,35 +1439,68 @@ var Suono = (function () {
   }
   // midis: note delle corde suonate, dalla più grave. arpeggio = note più distanziate.
   function chitarra(midis, arpeggio) {
-    if (!midis.length || !ensure()) return false;
-    chitarraAt(midis, ctx.currentTime + 0.03, arpeggio ? 0.2 : 0.03, 0, master);
-    return true;
+    if (!midis.length || !ensure()) return null;
+    return loadSoundfont('chitarra').then(function (instrument) {
+      sampledGuitarAt(instrument, midis, ctx.currentTime + 0.03, arpeggio ? 0.2 : 0.03, 0);
+      return true;
+    }, function (error) {
+      console.error('Could not load the sampled guitar sound.', error);
+      chitarraAt(midis, ctx.currentTime + 0.03, arpeggio ? 0.2 : 0.03, 0, instrumentInput);
+      return false;
+    });
   }
   function piano(midis) {
-    if (!midis.length || !ensure()) return false;
-    pianoAt(midis, ctx.currentTime + 0.03, 0, master);
-    return true;
+    if (!midis.length || !ensure()) return null;
+    return loadSoundfont('piano').then(function (instrument) {
+      sampledPianoAt(instrument, midis, ctx.currentTime + 0.03, 0);
+      return true;
+    }, function (error) {
+      console.error('Could not load the sampled piano sound.', error);
+      pianoAt(midis, ctx.currentTime + 0.03, 0, instrumentInput);
+      return false;
+    });
   }
   // Sequenza di accordi: le note si programmano sull'orologio dell'AudioContext (when = secondi dell'orologio).
-  // Tutto passa da un unico canale: stop() lo azzera e lo stacca, quindi le note già programmate non si sentono più.
   function sequenza() {
-    if (!ensure()) return null;
+    if (!ensure()) return Promise.resolve(null);
     var bus = ctx.createGain();
     bus.connect(master);
-    return {
-      now: function () { return ctx.currentTime; },
-      click: function (when, accented, volume) { clickAt(when, accented, bus, volume); },
-      chitarra: function (midis, when, hold, upstroke) {
-        var notes = upstroke ? midis.slice().reverse() : midis;
-        chitarraAt(notes, when, 0.035, hold, bus, upstroke ? 0.7 : 1);
-      },
-      piano: function (midis, when, hold, gain) { pianoAt(midis, when, hold, bus, gain); },
-      stop: function () {
-        bus.gain.cancelScheduledValues(ctx.currentTime);
-        bus.gain.setTargetAtTime(0, ctx.currentTime, 0.015);
-        setTimeout(function () { bus.disconnect(); }, 400);
-      }
-    };
+    var seqInstrumentInput = makeInstrumentBus(bus);
+    var kinds = ['chitarra', 'piano'];
+    return Promise.all(kinds.map(function (kind) {
+      return loadSoundfont(kind).then(function (instrument) {
+        return { kind: kind, instrument: instrument, error: null };
+      }, function (error) {
+        console.error('Could not load the sampled ' + kind + ' sound.', error);
+        return { kind: kind, instrument: null, error: error };
+      });
+    })).then(function (loaded) {
+      var guitar = loaded[0].instrument, piano = loaded[1].instrument;
+      var unavailable = loaded.filter(function (item) { return !item.instrument; }).map(function (item) {
+        return item.kind === 'chitarra' ? 'chitarra' : 'pianoforte';
+      });
+      return {
+        fallback: unavailable,
+        now: function () { return ctx.currentTime; },
+        click: function (when, accented, volume) { clickAt(when, accented, bus, volume); },
+        chitarra: function (midis, when, hold, upstroke) {
+          var notes = upstroke ? midis.slice().reverse() : midis;
+          if (guitar) sampledGuitarAt(guitar, notes, when, 0.035, hold, upstroke ? 0.7 : 1);
+          else chitarraAt(notes, when, 0.035, hold, seqInstrumentInput, upstroke ? 0.7 : 1);
+        },
+        piano: function (midis, when, hold, gain) {
+          if (piano) sampledPianoAt(piano, midis, when, hold, gain);
+          else pianoAt(midis, when, hold, seqInstrumentInput, gain);
+        },
+        stop: function () {
+          if (guitar) guitar.stop(ctx.currentTime);
+          if (piano) piano.stop(ctx.currentTime);
+          bus.gain.cancelScheduledValues(ctx.currentTime);
+          bus.gain.setTargetAtTime(0, ctx.currentTime, 0.015);
+          setTimeout(function () { bus.disconnect(); }, 400);
+        }
+      };
+    });
   }
   return { chitarra: chitarra, piano: piano, sequenza: sequenza };
 })();
@@ -1427,6 +1508,7 @@ var Suono = (function () {
 
 <!-- ======================= APPLICAZIONE ======================= -->
 <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@2.3.1/build/opensheetmusicdisplay.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/soundfont-player@0.12.0/dist/soundfont-player.min.js"></script>
 
 <script id="app">
 (function () {
@@ -1649,9 +1731,9 @@ var Suono = (function () {
         v: 9, sequence: sequenceSelections, rhythm: rhythm, metronome: metronomeEnabled, metronomeVolume: metronomeVolume, look: state.look, show: state.show, tavTitolo: $('tav-titolo').value, prog: $('prog').value,
         cards: state.cards.map(function (c) { return { chord: c.chord, gIdx: c.gIdx, gManual: c.gManual, pInv: c.pInv, pManual: c.pManual }; })
       }));
-      $('salvataggio').textContent = 'Sequenza salvata automaticamente su questo dispositivo.';
+      if ($('salvataggio')) $('salvataggio').textContent = 'Sequenza salvata automaticamente su questo dispositivo.';
     } catch (e) {
-      $('salvataggio').textContent = 'Salvataggio non disponibile in questo browser. La sequenza resta attiva fino alla chiusura della pagina.';
+      if ($('salvataggio')) $('salvataggio').textContent = 'Salvataggio non disponibile in questo browser. La sequenza resta attiva fino alla chiusura della pagina.';
     }
   }
   function restoreState() {
@@ -1732,12 +1814,12 @@ var Suono = (function () {
       syncMetronome();
       syncMetronomeVolume();
       renderSheet();
-      $('salvataggio').textContent = 'Sequenza ripresa dal salvataggio su questo dispositivo.';
+      if ($('salvataggio')) $('salvataggio').textContent = 'Sequenza ripresa dal salvataggio su questo dispositivo.';
       setStatus('Ho ripreso il foglio salvato (' + cards.length + (cards.length === 1 ? ' accordo).' : ' accordi).'));
       return true;
     } catch (e) {
       state.cards = [];
-      $('salvataggio').textContent = 'Non è stato possibile leggere il salvataggio. Verrà creata una nuova sequenza.';
+      if ($('salvataggio')) $('salvataggio').textContent = 'Non è stato possibile leggere il salvataggio. Verrà creata una nuova sequenza.';
       return false;
     }
   }
@@ -2087,7 +2169,7 @@ var Suono = (function () {
   function sheetSvgString(S, bg) {
     var views = state.cards.map(viewOf);
     if (isTavola()) return D.posterSvg(views, { title: $('tav-titolo').value.trim() }, drawCtx(posterStyle(S), { cols: state.cols, bg: bg }));
-    return D.sheetSvg(views, { title: $('titolo').value.trim(), subtitle: $('sottotitolo').value.trim() }, drawCtx(S, { cols: state.cols, bg: bg }));
+    return D.sheetSvg(views, { title: $('titolo').value.trim(), subtitle: '' }, drawCtx(S, { cols: state.cols, bg: bg }));
   }
   function exportSheet(kind) {
     if (!state.cards.length) { setStatus('Il foglio è vuoto.'); return; }
@@ -2103,11 +2185,19 @@ var Suono = (function () {
     var midis = [];
     if (g) g.frets.forEach(function (f, s) { if (f >= 0) midis.push(T.OPEN_MIDI[s] + f); });
     if (!midis.length) { setStatus('Nessuna corda da suonare.'); return; }
-    if (!Suono.chitarra(midis, arpeggio)) setStatus("Questo browser non riproduce l'audio.");
+    var playback = Suono.chitarra(midis, arpeggio);
+    if (!playback) { setStatus("Questo browser non riproduce l'audio."); return; }
+    playback.then(function (sampled) {
+      if (!sampled) $('seq-audio-status').textContent = 'Campioni di chitarra non disponibili: sto usando il timbro sintetizzato.';
+    });
   }
   function playPiano(midis) {
     if (!midis.length) { setStatus('Nessun tasto da suonare.'); return; }
-    if (!Suono.piano(midis)) setStatus("Questo browser non riproduce l'audio.");
+    var playback = Suono.piano(midis);
+    if (!playback) { setStatus("Questo browser non riproduce l'audio."); return; }
+    playback.then(function (sampled) {
+      if (!sampled) $('seq-audio-status').textContent = 'Campioni di pianoforte non disponibili: sto usando il timbro sintetizzato.';
+    });
   }
 
   // ---- costruzione da nota e tipo, anteprima ----
@@ -2137,7 +2227,7 @@ var Suono = (function () {
     if (what !== 'chitarra') playPiano(view.piano.notes.map(function (n) { return n.midi; }));
   }
   // ---- riproduzione in sequenza ----
-  var seq = { on: false, timer: null, ctl: null, idx: 0, next: 0, events: [], hi: null, done: false, endAt: 0, countInStart: 0, countInEnd: 0, beatDuration: 0 };
+  var seq = { on: false, loading: false, loadToken: 0, timer: null, ctl: null, idx: 0, next: 0, events: [], hi: null, done: false, endAt: 0, countInStart: 0, countInEnd: 0, beatDuration: 0 };
   function markPlaying() {
     document.querySelectorAll('#griglia .card').forEach(function (el) {
       el.classList.toggle('suona', seq.hi !== null && parseInt(el.getAttribute('data-id'), 10) === seq.hi);
@@ -2154,6 +2244,9 @@ var Suono = (function () {
     $('seq-stop').disabled = !on;
   }
   function stopSeq(msg) {
+    var wasLoading = seq.loading;
+    seq.loadToken++;
+    seq.loading = false;
     if (seq.timer) { clearInterval(seq.timer); seq.timer = null; }
     if (seq.ctl) { seq.ctl.stop(); seq.ctl = null; }
     seq.on = false; seq.events = [];
@@ -2161,6 +2254,7 @@ var Suono = (function () {
     highlight(null);
     seqUi(false);
     $('seq-stato').textContent = msg || '';
+    if (wasLoading) $('seq-audio-status').textContent = 'Caricamento dei campioni annullato.';
   }
   // Programma gli accordi con un breve anticipo sull'orologio audio; l'evidenziazione segue lo stesso orologio.
   function tickSeq() {
@@ -2208,17 +2302,40 @@ var Suono = (function () {
   function startSeq() {
     if (!state.cards.length) { $('seq-stato').textContent = 'Il foglio è vuoto: aggiungi almeno un accordo.'; return; }
     stopSeq();
-    var ctl = Suono.sequenza();
-    if (!ctl) { $('seq-stato').textContent = "Questo browser non riproduce l'audio."; return; }
-    var bpm = parseInt($('seq-bpm').value, 10);
-    seq.countInStart = ctl.now() + 0.1;
-    seq.beatDuration = 60 / bpm;
-    seq.countInEnd = seq.countInStart + 4 * seq.beatDuration;
-    seq.ctl = ctl; seq.on = true; seq.idx = 0; seq.next = seq.countInEnd; seq.events = []; seq.done = false;
-    for (var beatIndex = 0; beatIndex < 4; beatIndex++) ctl.click(seq.countInStart + beatIndex * seq.beatDuration, beatIndex === 0, metronomeGain());
+    var token = seq.loadToken;
+    seq.loading = true;
+    $('seq-audio-status').textContent = 'Caricamento dei campioni di chitarra e pianoforte...';
+    $('seq-stato').textContent = 'Attendi il caricamento dei campioni audio.';
     seqUi(true);
-    seq.timer = setInterval(tickSeq, 40);
-    tickSeq();
+    Suono.sequenza().then(function (ctl) {
+      if (token !== seq.loadToken) { if (ctl) ctl.stop(); return; }
+      seq.loading = false;
+      if (!ctl) {
+        seqUi(false);
+        $('seq-stato').textContent = "Questo browser non riproduce l'audio.";
+        $('seq-audio-status').textContent = 'Audio non disponibile in questo browser.';
+        return;
+      }
+      $('seq-audio-status').textContent = ctl.fallback.length
+        ? 'Campioni non disponibili per ' + ctl.fallback.join(' e ') + ': durante la sequenza userò il timbro sintetizzato.'
+        : 'Campioni audio caricati e pronti.';
+      var bpm = parseInt($('seq-bpm').value, 10);
+      seq.countInStart = ctl.now() + 0.1;
+      seq.beatDuration = 60 / bpm;
+      seq.countInEnd = seq.countInStart + 4 * seq.beatDuration;
+      seq.ctl = ctl; seq.on = true; seq.idx = 0; seq.next = seq.countInEnd; seq.events = []; seq.done = false;
+      for (var beatIndex = 0; beatIndex < 4; beatIndex++) ctl.click(seq.countInStart + beatIndex * seq.beatDuration, beatIndex === 0, metronomeGain());
+      seqUi(true);
+      seq.timer = setInterval(tickSeq, 40);
+      tickSeq();
+    }).catch(function (error) {
+      if (token !== seq.loadToken) return;
+      console.error('Could not prepare sequence audio.', error);
+      seq.loading = false;
+      seqUi(false);
+      $('seq-stato').textContent = 'Non è stato possibile preparare la sequenza audio.';
+      $('seq-audio-status').textContent = 'Errore nel caricamento audio. Controlla la connessione e riprova.';
+    });
   }
 
   // ---- modo manuale ----
@@ -2270,9 +2387,6 @@ var Suono = (function () {
 
   // ---- collegamenti ----
   function fillSelects() {
-    var tipo = $('add-tipo');
-    fillNotes();
-    tipo.innerHTML = TYPE_ORDER.map(function (id) { var t = T.TYPES.filter(function (x) { return x.id === id; })[0]; return '<option value="' + t.id + '">' + t.label + '</option>'; }).join('');
     var b = '';
     for (var i = 1; i <= 12; i++) b += '<option value="' + i + '">' + (i === 1 ? '1 (con capotasto)' : i) + '</option>';
     $('man-base').innerHTML = b;
@@ -2298,11 +2412,6 @@ var Suono = (function () {
     document.querySelectorAll('[data-prog]').forEach(function (b) {
       b.addEventListener('click', function () { $('prog').value = b.getAttribute('data-prog'); applyProgression(); });
     });
-    $('aggiungi').addEventListener('click', function () {
-      var ch = pickedChord();
-      addChord(ch);
-    });
-    $('anteprima').addEventListener('click', function () { previewChord(pickedChord()); });
     $('seq-play').addEventListener('click', startSeq);
     $('seq-stop').addEventListener('click', function () { stopSeq('Fermato.'); });
     $('seq-metronomo').addEventListener('click', function () {
