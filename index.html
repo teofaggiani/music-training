@@ -159,14 +159,22 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .seq-opz input[type=range]{width:100%}
 .pattern-controls{display:flex;gap:14px;flex-wrap:wrap}
 .pattern-grid{display:grid;grid-template-columns:repeat(var(--pattern-step-count,8),minmax(0,1fr));gap:6px;margin-top:8px}
-.pattern-step{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:58px;padding:4px 2px}
-.pattern-step[aria-pressed=true]{background:var(--ui-accent);color:var(--ui-accent-text);border-color:var(--ui-accent)}
-.pattern-step[aria-pressed=false]{opacity:.55}
+.pattern-grid.solo-battere{width:50%;margin-left:auto;margin-right:auto}
+.pattern-step{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:58px;padding:4px 2px;background:#fff}
+.pattern-step[aria-pressed=true]{background:#fff;border-color:var(--ui-accent)}
+.pattern-step[aria-pressed=false]{opacity:1;background:#fff}
 .pattern-step .step-count{font-size:11px}
-.pattern-step .step-arrow{font-size:22px;line-height:1}
+.pattern-step .step-arrow{display:block;width:40px;height:54px;line-height:0}
+.pattern-step .step-arrow svg{display:block;width:100%;height:100%;overflow:visible}
+.pattern-step[data-stroke=battere] .step-arrow svg{--stroke:#1f5fbf;transform:skewX(8deg)}
+.pattern-step[data-stroke=levare] .step-arrow svg{--stroke:#eebd32;transform:skewX(-8deg)}
+.pattern-step .step-arrow .arrow-fill{fill:transparent;stroke:var(--stroke);stroke-width:3.5;stroke-linejoin:round}
+.pattern-step[data-stroke=levare] .step-arrow .arrow-fill{stroke-width:2.8}
+.pattern-step[aria-pressed=true][data-stroke=battere] .step-arrow .arrow-fill{fill:#1f5fbf}
+.pattern-step[aria-pressed=true][data-stroke=levare] .step-arrow .arrow-fill{fill:#eebd32}
 .pattern-staff-wrap{margin-top:12px;padding:8px 10px;background:#fff;border:1px solid var(--ui-border);border-radius:8px;overflow-x:auto}
 .pattern-staff-wrap h3{margin:0 0 4px;font-size:14px;color:var(--ui-accent)}
-.pattern-staff-wrap svg{display:block;width:100%;height:90px;object-fit:contain}
+.pattern-staff-wrap svg{display:block;width:130%;height:117px;object-fit:contain}
 .card.suona{outline:5px solid var(--play-color);outline-offset:4px;border-radius:10px}
 .sheet.tavola{background:#fff8e7}
 .tav-testa svg{width:100%;height:auto;display:block}
@@ -1908,14 +1916,18 @@ var Suono = (function () {
     });
     var grid = $('pattern-grid');
     grid.style.setProperty('--pattern-step-count', count);
+    grid.classList.toggle('solo-battere', !levare);
     grid.innerHTML = pattern.map(function (active, i) {
       var upstroke = levare && i % 2 === 1;
       var stroke = upstroke ? 'levare' : 'battere';
       var beat = levare ? (upstroke ? 'e' : (i / 2 + 1)) : (i + 1);
       var action = active ? 'suona' : 'pausa';
-      return '<button type="button" class="pattern-step" data-pattern-index="' + i + '" aria-pressed="' + active +
+      var arrow = upstroke
+        ? '<svg viewBox="0 0 40 54" aria-hidden="true"><path class="arrow-fill" d="M20 2L38 28H29V52H11V28H2Z"/></svg>'
+        : '<svg viewBox="0 0 40 54" aria-hidden="true"><path class="arrow-fill" d="M20 52L38 26H29V2H11V26H2Z"/></svg>';
+      return '<button type="button" class="pattern-step" data-pattern-index="' + i + '" data-stroke="' + stroke + '" aria-pressed="' + active +
         '" aria-label="' + (levare ? 'Croma ' + beat : 'Battito ' + beat) + ', ' + stroke + ', ' + action + '">' +
-        '<span class="step-count">' + beat + '</span><span class="step-arrow" aria-hidden="true">' + (upstroke ? '&#8593;' : '&#8595;') + '</span></button>';
+        '<span class="step-count">' + beat + '</span><span class="step-arrow" aria-hidden="true">' + arrow + '</span></button>';
     }).join('');
     renderRhythmStaff();
   }
